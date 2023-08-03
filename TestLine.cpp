@@ -12,6 +12,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <fstream>
 
 using namespace Gdiplus;
 using namespace std;
@@ -38,12 +39,54 @@ float MapSize = OuterCityDiameter + 2;
 float InnerCityDiameter = 6;
 float RadialLineStep = 45.0;
 float OuterCityStopLength = 4;
-float InnerCityStopLength = OuterCityStopLength/4;
+float InnerCityStopLength = OuterCityStopLength/4.0;
 int lineWidth = 20;
 
 typedef pair<float, float> MapPoint;
 
 vector<vector<MapPoint>> SubwayMap;
+
+class SubwayLane
+{
+public:
+
+    Color color;
+    string name;
+    
+public:
+
+    SubwayLane(Color col, string nm)
+    {
+        color = col;
+        name = nm;
+    }
+
+    SubwayLane(const SubwayLane& sl)
+    {
+        color = sl.color;
+        name = sl.name;
+    }
+};
+
+vector<SubwayLane> subwayLanes = 
+{
+    SubwayLane(Color(255, 255, 0, 0), "Bright Red"),
+    SubwayLane(Color(255, 255, 165, 0), "Bright Orange"),
+    SubwayLane(Color(255, 255, 255, 0), "Bright Yellow"),
+    SubwayLane(Color(255, 0, 255, 0), "Bright Green"),
+    SubwayLane(Color(255, 0, 255, 255), "Bright Blue"),
+    SubwayLane(Color(255, 255, 0, 255), "Bright Magenta"),
+    SubwayLane(Color(255, 0, 0, 0), "Black"),
+    SubwayLane(Color(255, 255, 128, 0), "Bright Orange-Red"),
+    SubwayLane(Color(255, 255, 255, 128), "Bright Yellow-Light"),
+    SubwayLane(Color(255, 128, 255, 128), "Bright Lime Green"),
+    SubwayLane(Color(255, 128, 128, 255), "Bright Periwinkle"),
+    SubwayLane(Color(255, 255, 128, 255), "Bright Orchid"),
+    SubwayLane(Color(255, 128, 255, 255), "Bright Turquoise"),
+    SubwayLane(Color(255, 255, 0, 128), "Bright Hot Pink"),
+    SubwayLane(Color(255, 128, 0, 255), "Bright Indigo"),
+    SubwayLane(Color(255, 0, 0, 255), "Bright Light Blue") 
+};
 
 void GetMapSize(HWND hWnd)
 {
@@ -59,7 +102,29 @@ void GetMapSize(HWND hWnd)
         MapLeftCorner.X = diff;
 
 }
+//Distance in km, Acceleration in m/s^2, Speed in km/h, Time in seconds
+float maxAccelerationDistance(float acceleration, float maxspeed)
+{
+    float Tm = maxspeed / acceleration;
+    float d = (acceleration * Tm * Tm) / 2;
+    return d;
+}
 
+float timeToPoint(float distance, float acceleration, float maxspeed)
+{
+    if (distance / 2 < maxAccelerationDistance(acceleration, maxspeed))
+    {
+        float time = 2 * (sqrt(2 * (distance/2) / acceleration));
+        return time;
+    }
+    else
+    {
+        float time = 2*(maxspeed/acceleration);
+        float remainingDistance = distance - 2 * maxAccelerationDistance(acceleration, maxspeed);
+        time = time + (remainingDistance / maxspeed);
+        return time;
+    }
+}
 Point TranslateToScreen(MapPoint MapCoordinate)
 {
     return Point(MapLeftCorner.X + MapCoordinate.first * MapRatio, MapLeftCorner.Y + MapCoordinate.second * MapRatio);
@@ -156,64 +221,12 @@ int CalculateLineStops(float L, float d)
     return numofstations;
 }
 
-vector<Point> DrawOuterLine1(Graphics& graphics, MapPoint mapStart, MapPoint mapEnd, float stopLength,  Color lineColor, Color stopColor)
+vector<MapPoint> GetInnerBounds(Graphics& graphics, MapPoint mapStart, MapPoint mapEnd, float stopLength, Color lineColor, Color stopColor, float innerL)
 {
     Point start = TranslateToScreen(mapStart);
     Point end = TranslateToScreen(mapEnd);
     float L = OuterCityDiameter;
-    float innerL = InnerCityDiameter;
-
-    // Calculate the outer line segment length
-    float outerL = (L - innerL);
-
-    // Calculate the number of stations in the outer and inner sections
-    int totalstations = CalculateLineStops((L-innerL)/2, stopLength);
-
-    // Calculate the delta values for drawing lines and stops
-    int deltax = end.X - start.X;
-    int deltay = end.Y - start.Y;
-
-    Pen pen(lineColor);
-    pen.SetWidth(lineWidth);
-
-    pen.SetEndCap(LineCapRound);
-    pen.SetStartCap(LineCapRound);
-
-    std::vector<Point> points;
-
-    //coordinates of the inner city points
-    Point innerbound1(start.X + (deltax * ((0.5 * (L - innerL)) / L)), start.Y + (deltay * ((0.5 * (L - innerL)) / L)));
     
-    
-    Point innerbound2(end.X - (deltax * ((0.5 * (L - innerL)) / L)), end.Y - (deltay * ((0.5 * (L - innerL)) / L)));
-    
-    
-    deltax = innerbound1.X - start.X;
-    deltay = innerbound1.Y - start.Y;
-    // Draw the main line
-    graphics.DrawLine(&pen, start.X, start.Y, innerbound1.X, innerbound1.Y);
-    
-    for (int i = 0; i < totalstations; i++)
-    {
-        if (i == 0)
-        {
-            DrawStop(graphics, start, stopColor);
-            points.push_back(start);
-        }
-        Point currentPoint(start.X + (deltax * ((float)(i+1)/(float)totalstations)), start.Y + (deltay * ((float)(i+1) / (float)totalstations)));
-        DrawStop(graphics, currentPoint, stopColor);
-        points.push_back(currentPoint);
-    }
-
-    return points;
-}
-
-vector<vector <Point>> DrawInnerLineandInnerBounds(Graphics& graphics, MapPoint mapStart, MapPoint mapEnd, float stopLength, Color lineColor, Color stopColor)
-{
-    Point start = TranslateToScreen(mapStart);
-    Point end = TranslateToScreen(mapEnd);
-    float L = OuterCityDiameter;
-    float innerL = InnerCityDiameter;
 
     // Calculate the outer line segment length
     float outerL = (L - innerL);
@@ -224,89 +237,24 @@ vector<vector <Point>> DrawInnerLineandInnerBounds(Graphics& graphics, MapPoint 
     // Calculate the delta values for drawing lines and stops
     int deltax = end.X - start.X;
     int deltay = end.Y - start.Y;
-
-    Pen pen(lineColor);
-    pen.SetWidth(lineWidth);
-
-    pen.SetEndCap(LineCapRound);
-    pen.SetStartCap(LineCapRound);
-
-    vector<Point> innerpoints;
+    vector<MapPoint> innerpoints;
 
     //coordinates of the inner city points
     Point innerbound1(start.X + (deltax * ((0.5 * (L - innerL)) / L)), start.Y + (deltay * ((0.5 * (L - innerL)) / L)));
-    innerpoints.push_back(innerbound1);
+    MapPoint converted1 = TranslateToMap(innerbound1);
+    innerpoints.push_back(converted1);
     Point innerbound2(end.X - (deltax * ((0.5 * (L - innerL)) / L)), end.Y - (deltay * ((0.5 * (L - innerL)) / L)));
-    innerpoints.push_back(innerbound2);
-
-    // Draw the main line
-    graphics.DrawLine(&pen, innerbound1.X, innerbound1.Y, innerbound2.X, innerbound2.Y);
-
-    deltax = innerbound2.X - innerbound1.X;
-    deltay = innerbound2.Y - innerbound1.Y;
-    vector<Point> points;
-
-    for (int i = 0; i < totalstations; i++)
-    {
-        if (i == 0) DrawStop(graphics, start, stopColor);
-        Point currentPoint(innerbound1.X + (deltax * ((float)(i + 1) / (float)totalstations)), innerbound1.Y + (deltay * ((float)(i + 1) / (float)totalstations)));
-        DrawStop(graphics, currentPoint, stopColor);
-        points.push_back(currentPoint);
-    }
-    vector<vector<Point>> allpoints;
-    allpoints.push_back(points); allpoints.push_back(innerpoints);
-    return allpoints;
+    MapPoint converted2 = TranslateToMap(innerbound2);
+    innerpoints.push_back(converted2);
+    return (innerpoints);
 }
 
-vector<Point> DrawOuterLine2(Graphics& graphics, MapPoint mapStart, MapPoint mapEnd, float stopLength, Color lineColor, Color stopColor)
+vector<Point> DrawStraightLine(Graphics& graphics, Point start, Point end, float stopLength, Color lineColor, Color stopColor)
 {
-    Point start = TranslateToScreen(mapStart);
-    Point end = TranslateToScreen(mapEnd);
-
-    // Calculate the outer line segment length
-    float outerL = OuterCityDiameter - InnerCityDiameter;
+    float lineLength = sqrt(pow(start.X - end.X, 2) + pow(start.Y - end.Y, 2)) / MapRatio;
 
     // Calculate the number of stations in the outer and inner sections
-    int totalstations = CalculateLineStops((OuterCityDiameter - InnerCityDiameter) / 2, stopLength);
-
-    // Calculate the delta values for drawing lines and stops
-    int deltax = end.X - start.X;
-    int deltay = end.Y - start.Y;
-
-    Pen pen(lineColor);
-    pen.SetWidth(lineWidth);
-
-    pen.SetEndCap(LineCapRound);
-    pen.SetStartCap(LineCapRound);
-
-    //coordinates of the inner city points
-    Point innerbound1(start.X + (deltax * ((0.5 * (OuterCityDiameter - InnerCityDiameter)) / OuterCityDiameter)), start.Y + (deltay * ((0.5 * (OuterCityDiameter - InnerCityDiameter)) / OuterCityDiameter)));
-    Point innerbound2(end.X - (deltax * ((0.5 * (OuterCityDiameter - InnerCityDiameter)) / OuterCityDiameter)), end.Y - (deltay * ((0.5 * (OuterCityDiameter - InnerCityDiameter)) / OuterCityDiameter)));
-
-    // Draw the main line
-    graphics.DrawLine(&pen, innerbound2.X, innerbound2.Y, end.X, end.Y);
-    deltax = end.X - innerbound2.X;
-    deltay = end.Y - innerbound2.Y;
-    vector<Point> points;
-    for (int i = 0; i < totalstations; i++)
-    {
-        if (i == 0) DrawStop(graphics, start, stopColor);
-        Point currentPoint(innerbound2.X + (deltax * ((float)(i + 1) / (float)totalstations)), innerbound2.Y + (deltay * ((float)(i + 1) / (float)totalstations)));
-        DrawStop(graphics, currentPoint, stopColor);
-        points.push_back(currentPoint);
-    }
-   //Draws inner stops
-    DrawStop(graphics, innerbound1, Color(255, 255, 0, 255));
-    DrawStop(graphics, innerbound2, Color(255, 255, 0, 255));
-    return points;
-}
-vector<Point> DrawStraightLine(Graphics& graphics, Point mapStart, Point mapEnd, float stopLength, float L, Color lineColor, Color stopColor)
-{
-    Point start = mapStart;
-    Point end = mapEnd;
-
-    // Calculate the number of stations in the outer and inner sections
-    int totalstations = CalculateLineStops(L, stopLength);
+    int totalstations = CalculateLineStops(lineLength, stopLength);
 
     // Calculate the delta values for drawing lines and stops
     int deltax = end.X - start.X;
@@ -320,16 +268,66 @@ vector<Point> DrawStraightLine(Graphics& graphics, Point mapStart, Point mapEnd,
     // Draw the main line
     graphics.DrawLine(&pen, start.X, start.Y, end.X, end.Y);
     std::vector<Point> points;
-    for (int i = 0; i < totalstations; i++)
+    for (int i = 0; i <= totalstations; i++)
     {
-        if (i == 0) DrawStop(graphics, start, stopColor);
-        Point currentPoint(start.X + (deltax * ((float)(i + 1) / (float)totalstations)), start.Y + (deltay * ((float)(i + 1) / (float)totalstations)));
+        Point currentPoint(start.X + (deltax * ((float)(i) / (float)totalstations)), start.Y + (deltay * ((float)(i) / (float)totalstations)));
         DrawStop(graphics, currentPoint, stopColor);
         points.push_back(currentPoint);
     }
     return points;
 }
+vector<Point> drawCircle(HDC hdc, float stepAngle, float stopLength, float diameter)
+{
+    const float fullRotation = 360.0;
+    Graphics graphics(hdc);
+    Point center(MapSize / 2, MapSize / 2);
+    int currentcolor = 0;
+    int counter = 0;
+    int numoftimes = 180 / stepAngle;
+    vector<MapPoint> allinnerbounds1;
+    vector<MapPoint> allinnerbounds2;
 
+    for (float currentAngle = 0; currentAngle < fullRotation / 2.0; currentAngle += stepAngle)
+    {
+
+        float length = (OuterCityDiameter) / 2.0;
+        float radians = (currentAngle) * (3.1415926 / 180.0);
+        float cosine = cos(radians);
+        float sine = sin(radians);
+
+        int startX = center.X - round(length * cosine);
+        int startY = center.Y - round(length * sine);
+        int endX = center.X + round(length * cosine);
+        int endY = center.Y + round(length * sine);
+
+        int deltax = endX - startX;
+        int deltay = endY - startY;
+
+        vector<MapPoint> innerbounds = (GetInnerBounds(graphics, MapPoint((startX), (startY)), MapPoint((endX), (endY)), stopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255), diameter));
+
+        MapPoint innerbound1 = innerbounds[0];
+        MapPoint innerbound2 = innerbounds[1];
+        allinnerbounds1.push_back(innerbounds[0]);
+        allinnerbounds2.push_back(innerbounds[1]);
+
+        counter++;
+    }
+    vector<MapPoint> allinnerbounds;
+    for (int i = 0; i < allinnerbounds1.size(); i++)
+        allinnerbounds.push_back(allinnerbounds1[i]);
+    for (int i = 0; i < allinnerbounds2.size(); i++)
+        allinnerbounds.push_back(allinnerbounds2[i]);
+    allinnerbounds.push_back(allinnerbounds1[0]);
+    vector<Point> dotsoncircle;
+    for (int i = 0; i < allinnerbounds.size() - 1; i++)
+    {
+
+        vector<Point> dots = DrawStraightLine(graphics, TranslateToScreen(allinnerbounds[i]), TranslateToScreen(allinnerbounds[i + 1]), stopLength, Color(255, 0, 0, 0), Color(255, 255, 255, 255));
+        std::this_thread::sleep_for(10ms);
+        dotsoncircle.insert(dotsoncircle.end(), dots.begin() + 1, dots.end());
+    }
+    return dotsoncircle;
+}
 vector<vector<Point>> PaintCity(HDC hdc, float stepAngle)
 {
     vector<vector<Point>> linedots;
@@ -339,30 +337,14 @@ vector<vector<Point>> PaintCity(HDC hdc, float stepAngle)
     std::vector<std::vector<Point>> linesandstops;
 
     Graphics graphics(hdc);
-    
-    vector<Color> colors;
-    colors.push_back(Color(255, 255, 0, 0));        // Bright Red
-    colors.push_back(Color(255, 255, 165, 0));      // Bright Orange
-    colors.push_back(Color(255, 255, 255, 0));      // Bright Yellow
-    colors.push_back(Color(255, 0, 255, 0));        // Bright Green
-    colors.push_back(Color(255, 0, 255, 255));      // Bright Blue
-    colors.push_back(Color(255, 255, 0, 255));      // Bright Magenta
-    colors.push_back(Color(255, 0, 0, 0));          // Black
-    colors.push_back(Color(255, 255, 128, 0));      // Bright Orange-Red
-    colors.push_back(Color(255, 255, 255, 128));    // Bright Yellow-Light
-    colors.push_back(Color(255, 128, 255, 128));    // Bright Lime Green
-    colors.push_back(Color(255, 128, 128, 255));    // Bright Periwinkle
-    colors.push_back(Color(255, 255, 128, 255));    // Bright Orchid
-    colors.push_back(Color(255, 128, 255, 255));    // Bright Turquoise
-    colors.push_back(Color(255, 255, 0, 128));      // Bright Hot Pink
-    colors.push_back(Color(255, 128, 0, 255));      // Bright Indigo
-    colors.push_back(Color(255, 0, 0, 255));        // Bright Light Blue
+
     
     int currentcolor = 0;
     int counter = 0;
     int numoftimes = 180 / stepAngle;
-    vector<Point> allinnerbounds1;
-    vector<Point> allinnerbounds2;
+    vector<MapPoint> allinnerbounds1;
+    vector<MapPoint> allinnerbounds2;
+
     for (float currentAngle = 0; currentAngle < fullRotation / 2.0; currentAngle += stepAngle)
     {
         vector<Point> CollectionofLinePoints;
@@ -378,59 +360,52 @@ vector<vector<Point>> PaintCity(HDC hdc, float stepAngle)
         int endY = center.Y + round(length * sine);
         
         //This function draws all the points on the first outer secton
-        vector<Point> outerlinepoints1 = DrawOuterLine1(graphics, MapPoint((startX), (startY)), MapPoint((endX), (endY)), OuterCityStopLength, colors[currentcolor], Color(255, 255, 255, 255));
-        for (int i = 0; i < outerlinepoints1.size() ; i++)
-        {
-            CollectionofLinePoints.push_back(outerlinepoints1[i]);
-        }
+        int deltax = endX - startX;
+        int deltay = endY - startY;
 
-        //beside drawing the points on the first section, this function gives the inner bounds. What I do next is I push the points into the organized vector
-        vector<vector<Point>> innerpointsandinnerbounds = DrawInnerLineandInnerBounds(graphics, MapPoint((startX), (startY)), MapPoint((endX), (endY)), OuterCityStopLength, colors[currentcolor], Color(255, 255, 255, 255));
-        vector<Point> innerlinepoints = innerpointsandinnerbounds[0];
-        vector<Point> innerbounds = innerpointsandinnerbounds[1];
+        float lineLength = sqrt(pow(startX - endX, 2) + pow(startY - endY, 2));
+
+        //Gets inner bounds only
+        vector<MapPoint> innerbounds = (GetInnerBounds(graphics, MapPoint((startX), (startY)), MapPoint((endX), (endY)), InnerCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255), InnerCityDiameter));
+
+        MapPoint innerbound1 = innerbounds[0];
+        MapPoint innerbound2 = innerbounds[1];
+        allinnerbounds1.push_back(innerbounds[0]);
+        allinnerbounds2.push_back(innerbounds[1]);
+
+        vector<Point> outerlinepoints1 = DrawStraightLine(graphics, TranslateToScreen(MapPoint(startX, startY)), TranslateToScreen(innerbound1), OuterCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
+        CollectionofLinePoints.insert(CollectionofLinePoints.end(), outerlinepoints1.begin(), outerlinepoints1.end());
+
+        
+        vector<Point> innerlinepoints = DrawStraightLine(graphics, TranslateToScreen(innerbound1), TranslateToScreen(innerbound2), InnerCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
+
         for (int i = 0; i < innerlinepoints.size(); i++)
         {
             CollectionofLinePoints.push_back(innerlinepoints[i]);
         }
-        allinnerbounds1.push_back(innerbounds[0]);
-        allinnerbounds2.push_back(innerbounds[1]);
 
-        //This function draws all the points on the first outer secton
-        vector<Point> outerlinepoints2 = DrawOuterLine2(graphics, MapPoint((startX), (startY)), MapPoint((endX), (endY)), OuterCityStopLength, colors[currentcolor], Color(255, 255, 255, 255));
-        for (int i = 0; i < outerlinepoints2.size(); i++)
-        {
-            CollectionofLinePoints.push_back(outerlinepoints2[i]);
-        }
+
+        vector<Point> outerlinepoints2 = DrawStraightLine(graphics, TranslateToScreen(innerbound2), TranslateToScreen(MapPoint(endX, endY)), OuterCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
+        CollectionofLinePoints.insert(CollectionofLinePoints.end(), outerlinepoints2.begin(), outerlinepoints2.end());
         //linesandstops.push_back(points);
         if (currentcolor != 15) currentcolor++;
         else currentcolor = 0;
         counter++;
         linedots.push_back(CollectionofLinePoints);
     }
-    vector<Point> allinnerbounds;
-    for (int i = 0; i < allinnerbounds1.size(); i++)
-        allinnerbounds.push_back(allinnerbounds1[i]);
-    for (int i = 0; i < allinnerbounds2.size(); i++)
-        allinnerbounds.push_back(allinnerbounds2[i]);
-    allinnerbounds.push_back(allinnerbounds1[0]);
 
     Pen pen(Color(255, 0, 0, 0));
     pen.SetWidth(lineWidth);
 
     pen.SetEndCap(LineCapRound);
     pen.SetStartCap(LineCapRound);
-    float L = sqrt(pow((allinnerbounds[1].X - allinnerbounds[0].X), 2) + pow((allinnerbounds[1].Y - allinnerbounds[0].Y), 2)) / MapRatio;
-    vector<Point> dotsoncircle;
-    for (int i = 0; i < allinnerbounds.size()-1; i++)
-    {
-        vector<Point> dots = DrawStraightLine(graphics, allinnerbounds[i], allinnerbounds[i + 1], InnerCityStopLength, L, Color(255, 0, 0, 0), Color(255, 255, 255, 255));
-        for (int i = 0; i < dots.size() ; i++)
-        {
-            dotsoncircle.push_back(dots[i]);
-        }
-    }
-    linedots.push_back(dotsoncircle);
-
+   
+    vector<Point> innercircle = drawCircle(hdc, 45.0, InnerCityStopLength, InnerCityDiameter);
+    linedots.push_back(innercircle);
+    int numberofrings = 1;
+    vector<Point> outercircle = drawCircle(hdc, 45.0, OuterCityStopLength/2, OuterCityDiameter/2);
+    linedots.push_back(outercircle);
+   
     for (int i = 0; i < linedots.size(); i++)
     {
         vector<MapPoint> subwayLine;
@@ -440,17 +415,48 @@ vector<vector<Point>> PaintCity(HDC hdc, float stepAngle)
 
         SubwayMap.push_back(subwayLine);
     }
-
-
+ 
+    
     for (vector<MapPoint> line : SubwayMap)
         for (MapPoint stop : line)
         {
-            std::this_thread::sleep_for(100ms);
+            std::this_thread::sleep_for(10ms);
             DrawStop(graphics, TranslateToScreen(stop), Color(128, 128, 128, 128));
-            std::this_thread::sleep_for(100ms);
+            std::this_thread::sleep_for(10ms);
             DrawStop(graphics, TranslateToScreen(stop), Color(128, 255, 0, 0));
         }
 
+    std::fstream fs;
+    fs.open("points.txt", std::fstream::in | std::fstream::out | std::fstream::app);
+
+    try
+    {
+        for (int i = 0; i < linedots.size(); i++)
+        {
+            if (i < linedots.size() - 1)
+            {
+                fs << "Points for line " << i + 1 << ":" << endl;
+                for (int j = 0; j < linedots[i].size(); j++)
+                {
+                    fs << linedots[i][j].X << ", " << linedots[i][j].Y << endl;
+                }
+            }
+            else
+            {
+                fs << "Points for circle line:" << endl;
+                for (int j = 0; j < linedots[i].size(); j++)
+                {
+                    fs << linedots[i][j].X << ", " << linedots[i][j].Y << endl;
+                }
+            }
+        }
+    }
+    catch (...)
+    {
+        fs.close();
+    }
+    //acceleration is m/s^2, top speed is m/s
+    float timetest = timeToPoint(1000, 1, 30);
     return linedots;
 } 
 
