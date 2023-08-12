@@ -139,13 +139,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Dijkstra.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TestLine.h" />
+    <ClInclude Include="TransportationIntersection.h" />
+    <ClInclude Include="TransportationLine.h" />
+    <ClInclude Include="TransportationStop.h" />
+    <ClInclude Include="TransportationStopCoordinates.h" />
+    <ClInclude Include="TransportationSystem.h" />
+    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestLine.cpp" />
+    <ClCompile Include="TransportationIntersection.cpp" />
+    <ClCompile Include="TransportationLine.cpp" />
+    <ClCompile Include="TransportationStop.cpp" />
+    <ClCompile Include="TransportationStopCoordinates.cpp" />
+    <ClCompile Include="TransportationSystem.cpp" />
+    <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="TestLine.rc" />
