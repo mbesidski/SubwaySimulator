@@ -48,6 +48,12 @@
     <ClInclude Include="TransportationIntersection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TransportationLineColor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TransportationSystemAssumptions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestLine.cpp">
@@ -69,6 +75,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TransportationIntersection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TransportationLineColor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TransportationSystemAssumptions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

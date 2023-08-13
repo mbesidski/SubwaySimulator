@@ -144,8 +144,10 @@
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TestLine.h" />
+    <ClInclude Include="TransportationSystemAssumptions.h" />
     <ClInclude Include="TransportationIntersection.h" />
     <ClInclude Include="TransportationLine.h" />
+    <ClInclude Include="TransportationLineColor.h" />
     <ClInclude Include="TransportationStop.h" />
     <ClInclude Include="TransportationStopCoordinates.h" />
     <ClInclude Include="TransportationSystem.h" />
@@ -153,8 +155,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestLine.cpp" />
+    <ClCompile Include="TransportationSystemAssumptions.cpp" />
     <ClCompile Include="TransportationIntersection.cpp" />
     <ClCompile Include="TransportationLine.cpp" />
+    <ClCompile Include="TransportationLineColor.cpp" />
     <ClCompile Include="TransportationStop.cpp" />
     <ClCompile Include="TransportationStopCoordinates.cpp" />
     <ClCompile Include="TransportationSystem.cpp" />

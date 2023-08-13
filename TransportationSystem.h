@@ -28,7 +28,7 @@ public:
 	TransportationSystem();
 
 	void CalculateStopDistances();
-	void CalculateStopTimes(float acceleration, float maxSpeed);
+	void CalculateStopTimes();
 	void CalculateIntersections();
 	void CalculatePaths(int transferTime, int addlTransferTime);
 };

@@ -1,4 +1,5 @@
 #include "TransportationSystem.h"
+#include "TransportationSystemAssumptions.h"
 #include "Utils.h"
 #include "Dijkstra.h"
 
@@ -61,15 +62,15 @@ void TransportationSystem::CalculateStopDistances()
 
 }
 
-void TransportationSystem::CalculateStopTimes(float acceleration, float maxSpeed)
+void TransportationSystem::CalculateStopTimes()
 {
-	float Tm = maxSpeed / acceleration;
-	float maxAccelerationDistance = (acceleration * pow(Tm, 2)) / 2;
+	float Tm = TransportationSystemAssumptions::maxSpeed / TransportationSystemAssumptions::acceleration;
+	float maxAccelerationDistance = (TransportationSystemAssumptions::acceleration * pow(Tm, 2)) / 2;
 
 	for (auto d : DistanceBetweenStops)
 	{
 		float distance = d.second;
-		float time = Utils::CalculateTime(acceleration, maxSpeed, distance * 1000, maxAccelerationDistance);
+		float time = Utils::CalculateTime(TransportationSystemAssumptions::acceleration, TransportationSystemAssumptions::maxSpeed, distance * 1000, maxAccelerationDistance);
 		TimeBetweenStops[d.first] = round(time);
 	}
 }
@@ -87,7 +88,7 @@ void TransportationSystem::CalculateIntersections()
 
 				for (int other_stop_idx : other_line.stops)
 				{
-					if (Utils::CalculateDistance(stops[stop_idx].mapCoordinates, stops[other_stop_idx].mapCoordinates) < Utils::proximity_distance)
+					if (Utils::CalculateDistance(stops[stop_idx].mapCoordinates, stops[other_stop_idx].mapCoordinates) < TransportationSystemAssumptions::proximity_distance)
 						intersections.push_back({ stops[stop_idx].mapCoordinates, {stop_idx, other_stop_idx} });
 				}
 			}
@@ -102,7 +103,7 @@ void TransportationSystem::CalculateIntersections()
 		{
 			for (int j = i + 1; j < intersections.size(); j++)
 			{
-				if (Utils::CalculateDistance(intersections[i].coords, intersections[j].coords) < Utils::proximity_distance)
+				if (Utils::CalculateDistance(intersections[i].coords, intersections[j].coords) < TransportationSystemAssumptions::proximity_distance)
 				{
 					bFound = true;
 					intersections[i].Merge(intersections[j]);

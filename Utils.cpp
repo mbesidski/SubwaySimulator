@@ -1,8 +1,6 @@
 #include "Utils.h"
 #include <cmath>
 
-float Utils::proximity_distance = 0.05;
-
 float Utils::CalculateDistance(TransportationStopCoordinates coord1, TransportationStopCoordinates coord2)
 {
 	return std::sqrt(pow((coord2.x - coord1.x), 2) + pow((coord2.y - coord1.y), 2));

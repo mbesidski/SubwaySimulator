@@ -7,14 +7,15 @@
 #include <numbers>
 #include <vector>
 #include <windows.h>
-#include <objidl.h>
-#include <gdiplus.h>
+#include "TransportationLineColor.h"
 #include <iostream>
 #include <chrono>
 #include <thread>
 #include <fstream>
 
 #include "TransportationSystem.h"
+#include "TransportationSystemAssumptions.h"
+
 
 using namespace Gdiplus;
 using namespace std;
@@ -36,64 +37,28 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 float MapRatio;
 Point MapLeftCorner;
-float OuterCityDiameter = 30;
-float MapSize = OuterCityDiameter + 2;
-float InnerCityDiameter = 6;
-float MiddleCityDiameter = 15;
-float RadialLineStep = 45.0;
-float OuterCityStopLength = 4;
-float InnerCityStopLength = OuterCityStopLength/4.0;
-float accceleration = 1;
-float maxSpeed = 30;
-//acceleration is m/s^2, top speed is m/s
 int lineWidth = 20;
-int transferTime = 60;
-int addlTransferTime = 60;
 
 TransportationSystem transportationSystem;
 
-vector<vector<TransportationStopCoordinates>> SubwayMap;
-
-class SubwayLane
+vector<TransportationLineColor> subwayLanes =
 {
-public:
-
-    Color color;
-    string name;
-    
-public:
-
-    SubwayLane(Color col, string nm)
-    {
-        color = col;
-        name = nm;
-    }
-
-    SubwayLane(const SubwayLane& sl)
-    {
-        color = sl.color;
-        name = sl.name;
-    }
-};
-
-vector<SubwayLane> subwayLanes = 
-{
-    SubwayLane(Color(255, 255, 0, 0), "Bright Red"),
-    SubwayLane(Color(255, 255, 165, 0), "Bright Orange"),
-    SubwayLane(Color(255, 255, 255, 0), "Bright Yellow"),
-    SubwayLane(Color(255, 0, 255, 0), "Bright Green"),
-    SubwayLane(Color(255, 0, 255, 255), "Bright Blue"),
-    SubwayLane(Color(255, 255, 0, 255), "Bright Magenta"),
-    SubwayLane(Color(255, 0, 0, 0), "Black"),
-    SubwayLane(Color(255, 255, 128, 0), "Bright Orange-Red"),
-    SubwayLane(Color(255, 255, 255, 128), "Bright Yellow-Light"),
-    SubwayLane(Color(255, 128, 255, 128), "Bright Lime Green"),
-    SubwayLane(Color(255, 128, 128, 255), "Bright Periwinkle"),
-    SubwayLane(Color(255, 255, 128, 255), "Bright Orchid"),
-    SubwayLane(Color(255, 128, 255, 255), "Bright Turquoise"),
-    SubwayLane(Color(255, 255, 0, 128), "Bright Hot Pink"),
-    SubwayLane(Color(255, 128, 0, 255), "Bright Indigo"),
-    SubwayLane(Color(255, 0, 0, 255), "Bright Light Blue") 
+    {Color(255, 255, 0, 0), "Bright Red" },
+    {Color(255, 255, 165, 0), "Bright Orange"},
+    {Color(255, 255, 255, 0), "Bright Yellow"},
+    {Color(255, 0, 255, 0), "Bright Green"},
+    {Color(255, 0, 255, 255), "Bright Blue"},
+    {Color(255, 255, 0, 255), "Bright Magenta"},
+    {Color(255, 0, 0, 0), "Black"},
+    {Color(255, 255, 128, 0), "Bright Orange-Red"},
+    {Color(255, 255, 255, 128), "Bright Yellow-Light"},
+    {Color(255, 128, 255, 128), "Bright Lime Green"},
+    {Color(255, 128, 128, 255), "Bright Periwinkle"},
+    {Color(255, 255, 128, 255), "Bright Orchid"},
+    {Color(255, 128, 255, 255), "Bright Turquoise"},
+    {Color(255, 255, 0, 128), "Bright Hot Pink"},
+    {Color(255, 128, 0, 255), "Bright Indigo"},
+    {Color(255, 0, 0, 255), "Bright Light Blue"}
 };
 
 void GetMapSize(HWND hWnd)
@@ -101,7 +66,7 @@ void GetMapSize(HWND hWnd)
     RECT windowSize;
     GetClientRect(hWnd, &windowSize);
     float screenSize = min(windowSize.bottom - windowSize.top, windowSize.right - windowSize.left);
-    MapRatio = screenSize / MapSize;
+    MapRatio = screenSize / TransportationSystemAssumptions::MapSize;
     MapLeftCorner = Point(0, 0);
     int diff = abs(((windowSize.bottom - windowSize.top) - (windowSize.right - windowSize.left)) / 2);
     if (windowSize.bottom - windowSize.top > windowSize.right - windowSize.left) //taller than it is wide
@@ -210,7 +175,7 @@ vector<TransportationStopCoordinates> GetInnerBounds(Graphics& graphics, Transpo
 {
     Point start = TranslateToScreen(mapStart);
     Point end = TranslateToScreen(mapEnd);
-    float L = OuterCityDiameter;
+    float L = TransportationSystemAssumptions::OuterCityDiameter;
     
 
     // Calculate the outer line segment length
@@ -265,7 +230,7 @@ vector<Point> drawCircle(HDC hdc, float stepAngle, float stopLength, float diame
 {
     const float fullRotation = 360.0;
     Graphics graphics(hdc);
-    Point center(MapSize / 2, MapSize / 2);
+    Point center(TransportationSystemAssumptions::MapSize / 2, TransportationSystemAssumptions::MapSize / 2);
     int currentcolor = 0;
     int counter = 0;
     int numoftimes = 180 / stepAngle;
@@ -275,7 +240,7 @@ vector<Point> drawCircle(HDC hdc, float stepAngle, float stopLength, float diame
     for (float currentAngle = 0; currentAngle < fullRotation / 2.0; currentAngle += stepAngle)
     {
 
-        float length = (OuterCityDiameter) / 2.0;
+        float length = (TransportationSystemAssumptions::OuterCityDiameter) / 2.0;
         float radians = (currentAngle) * (3.1415926 / 180.0);
         float cosine = cos(radians);
         float sine = sin(radians);
@@ -329,12 +294,12 @@ vector<vector<Point>> PaintCity(HDC hdc, float stepAngle)
     vector<vector<Point>> linedots;
     const float fullRotation = 360.0;
 
-    Point center(MapSize / 2, MapSize / 2); 
+    Point center(TransportationSystemAssumptions::MapSize / 2, TransportationSystemAssumptions::MapSize / 2);
     std::vector<std::vector<Point>> linesandstops;
 
     Graphics graphics(hdc);
 
-    
+
     int currentcolor = 0;
     int counter = 0;
     int numoftimes = 180 / stepAngle;
@@ -346,7 +311,7 @@ vector<vector<Point>> PaintCity(HDC hdc, float stepAngle)
     {
         vector<Point> CollectionofLinePoints;
 
-        float length = (OuterCityDiameter) / 2.0;
+        float length = (TransportationSystemAssumptions::OuterCityDiameter) / 2.0;
         float radians = (currentAngle) * (3.1415926 / 180.0);
         float cosine = cos(radians);
         float sine = sin(radians);
@@ -355,7 +320,7 @@ vector<vector<Point>> PaintCity(HDC hdc, float stepAngle)
         int startY = center.Y - round(length * sine);
         int endX = center.X + round(length * cosine);
         int endY = center.Y + round(length * sine);
-        
+
         //This function draws all the points on the first outer secton
         int deltax = endX - startX;
         int deltay = endY - startY;
@@ -363,8 +328,8 @@ vector<vector<Point>> PaintCity(HDC hdc, float stepAngle)
         float lineLength = sqrt(pow(startX - endX, 2) + pow(startY - endY, 2));
 
         //Gets inner bounds only
-        vector<TransportationStopCoordinates> innerbounds = GetInnerBounds(graphics, TransportationStopCoordinates((startX), (startY)), TransportationStopCoordinates((endX), (endY)), InnerCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255), InnerCityDiameter);
-        vector<TransportationStopCoordinates> midbounds = GetInnerBounds(graphics, TransportationStopCoordinates((startX), (startY)), TransportationStopCoordinates((endX), (endY)), InnerCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255), MiddleCityDiameter);
+        vector<TransportationStopCoordinates> innerbounds = GetInnerBounds(graphics, TransportationStopCoordinates((startX), (startY)), TransportationStopCoordinates((endX), (endY)), TransportationSystemAssumptions::InnerCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255), TransportationSystemAssumptions::InnerCityDiameter);
+        vector<TransportationStopCoordinates> midbounds = GetInnerBounds(graphics, TransportationStopCoordinates((startX), (startY)), TransportationStopCoordinates((endX), (endY)), TransportationSystemAssumptions::InnerCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255), TransportationSystemAssumptions::MiddleCityDiameter);
 
         TransportationStopCoordinates innerbound1 = innerbounds[0];
         TransportationStopCoordinates innerbound2 = innerbounds[1];
@@ -376,19 +341,19 @@ vector<vector<Point>> PaintCity(HDC hdc, float stepAngle)
         allmidbounds1.push_back(midbounds[0]);
         allmidbounds2.push_back(midbounds[1]);
 
-        vector<Point> outerlinepoints1 = DrawStraightLine(graphics, TranslateToScreen(TransportationStopCoordinates(startX, startY)), TranslateToScreen(midbound1), OuterCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
+        vector<Point> outerlinepoints1 = DrawStraightLine(graphics, TranslateToScreen(TransportationStopCoordinates(startX, startY)), TranslateToScreen(midbound1), TransportationSystemAssumptions::OuterCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), outerlinepoints1.begin(), outerlinepoints1.end());
 
-        vector<Point> midlinepoints1 = DrawStraightLine(graphics, TranslateToScreen(midbound1), TranslateToScreen(innerbound1), OuterCityStopLength/2, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
+        vector<Point> midlinepoints1 = DrawStraightLine(graphics, TranslateToScreen(midbound1), TranslateToScreen(innerbound1), TransportationSystemAssumptions::OuterCityStopLength / 2, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), midlinepoints1.begin(), midlinepoints1.end());
-        
-        vector<Point> innerlinepoints = DrawStraightLine(graphics, TranslateToScreen(innerbound1), TranslateToScreen(innerbound2), InnerCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
+
+        vector<Point> innerlinepoints = DrawStraightLine(graphics, TranslateToScreen(innerbound1), TranslateToScreen(innerbound2), TransportationSystemAssumptions::InnerCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), innerlinepoints.begin(), innerlinepoints.end());
 
-        vector<Point> midlinepoints2 = DrawStraightLine(graphics, TranslateToScreen(innerbound2), TranslateToScreen(midbound2), OuterCityStopLength/2, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
+        vector<Point> midlinepoints2 = DrawStraightLine(graphics, TranslateToScreen(innerbound2), TranslateToScreen(midbound2), TransportationSystemAssumptions::OuterCityStopLength / 2, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), midlinepoints2.begin(), midlinepoints2.end());
 
-        vector<Point> outerlinepoints2 = DrawStraightLine(graphics, TranslateToScreen(midbound2), TranslateToScreen(TransportationStopCoordinates(endX, endY)), OuterCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
+        vector<Point> outerlinepoints2 = DrawStraightLine(graphics, TranslateToScreen(midbound2), TranslateToScreen(TransportationStopCoordinates(endX, endY)), TransportationSystemAssumptions::OuterCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), outerlinepoints2.begin(), outerlinepoints2.end());
 
         AddLineToSystem(CollectionofLinePoints, subwayLanes[currentcolor].name, false);
@@ -399,7 +364,7 @@ vector<vector<Point>> PaintCity(HDC hdc, float stepAngle)
         counter++;
         linedots.push_back(CollectionofLinePoints);
 
-        
+
     }
 
     Pen pen(Color(255, 0, 0, 0));
@@ -407,97 +372,35 @@ vector<vector<Point>> PaintCity(HDC hdc, float stepAngle)
 
     pen.SetEndCap(LineCapRound);
     pen.SetStartCap(LineCapRound);
-   
-    vector<Point> innercircle = drawCircle(hdc, stepAngle, InnerCityStopLength, InnerCityDiameter, subwayLanes[currentcolor].color);
+
+    vector<Point> innercircle = drawCircle(hdc, stepAngle, TransportationSystemAssumptions::InnerCityStopLength, TransportationSystemAssumptions::InnerCityDiameter, subwayLanes[currentcolor].color);
     linedots.push_back(innercircle);
     AddLineToSystem(innercircle, subwayLanes[currentcolor].name, true);
 
     currentcolor++;
     int numberofrings = 1;
-    vector<Point> outercircle = drawCircle(hdc, stepAngle, OuterCityStopLength/2, OuterCityDiameter/2, subwayLanes[currentcolor].color);
+    vector<Point> outercircle = drawCircle(hdc, stepAngle, TransportationSystemAssumptions::OuterCityStopLength / 2, TransportationSystemAssumptions::OuterCityDiameter / 2, subwayLanes[currentcolor].color);
     linedots.push_back(outercircle);
     AddLineToSystem(outercircle, subwayLanes[currentcolor].name, true);
 
     transportationSystem.CalculateStopDistances();
-    transportationSystem.CalculateStopTimes(accceleration, maxSpeed);
+    transportationSystem.CalculateStopTimes();
     transportationSystem.CalculateIntersections();
-    transportationSystem.CalculatePaths(transferTime, addlTransferTime);
+    transportationSystem.CalculatePaths(TransportationSystemAssumptions::transferTime, TransportationSystemAssumptions::addlTransferTime);
 
 
-    for (int i = 0; i < linedots.size(); i++)
+
+
+    for (TransportationLine line : transportationSystem.lines)
     {
-        vector<TransportationStopCoordinates> subwayLine;
-
-        for (int j = 0; j < linedots[i].size(); j++)
-            subwayLine.push_back(TranslateToMap(linedots[i][j]));
-
-        SubwayMap.push_back(subwayLine);
-    }
- 
-    
-    for (vector<TransportationStopCoordinates> line : SubwayMap)
-        for (TransportationStopCoordinates stop : line)
+        for (int stop_idx : line.stops)
         {
             std::this_thread::sleep_for(10ms);
-            DrawStop(graphics, TranslateToScreen(stop), Color(128, 128, 128, 128));
+            DrawStop(graphics, TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates), Color(128, 128, 128, 128));
             std::this_thread::sleep_for(10ms);
-            DrawStop(graphics, TranslateToScreen(stop), Color(128, 255, 0, 0));
-        }
-    for (int i = 0; i < linedots.size(); i++) 
-    {
-        for (int j = linedots[i].size() - 1; j > 0; j--) 
-        {
-            if (sqrt((linedots[i][j].X - linedots[i][j - 1].X) * (linedots[i][j].X - linedots[i][j - 1].X) + (linedots[i][j].Y - linedots[i][j - 1].Y) * (linedots[i][j].Y - linedots[i][j - 1].Y)) == 0) 
-            {
-                linedots[i].erase(linedots[i].begin() + j);
-            }
-        }
-
-    }
-    std::fstream fs;
-    fs.open("points.txt", std::fstream::in | std::fstream::out | std::fstream::app);
-    int count = 1;
-    try
-    {
-        for (int i = 0; i < linedots.size(); i++)
-        {
-            if (i < linedots.size() - 2)
-            {
-                fs << "Points for line " << i + 1 << ":" << endl;;
-                for (int j = 0; j < linedots[i].size(); j++)
-                {
-                    fs << count << ". (" << linedots[i][j].X << ", " << linedots[i][j].Y << ")" << endl;
-                    if (j != 0)
-                    {
-                        fs << "The distance between this point and the last is " << sqrt((linedots[i][j].X - linedots[i][j - 1].X) * (linedots[i][j].X - linedots[i][j - 1].X) + (linedots[i][j].Y - linedots[i][j - 1].Y) * (linedots[i][j].Y - linedots[i][j - 1].Y)) / MapRatio << " Kilometers" << endl;
-                    }
-                    count++;
-                }
-                count = 1;
-                fs << endl;
-            }
-            else
-            {
-                fs << "Points for circle lines:" << endl;
-                for (int j = 0; j < linedots[i].size(); j++)
-                {
-                    fs << count << ". " << linedots[i][j].X << ", " << linedots[i][j].Y << ")" << endl;
-                    if (j != 0)
-                    {
-                        fs << "The distance between this point and the last is " << sqrt((linedots[i][j].X - linedots[i][j - 1].X) * (linedots[i][j].X - linedots[i][j - 1].X) + (linedots[i][j].Y - linedots[i][j - 1].Y) * (linedots[i][j].Y - linedots[i][j - 1].Y))/MapRatio << " Kilometers" << endl;
-                    }
-                    count++;
-                }
-                count = 1;
-                fs << endl;
-            }
+            DrawStop(graphics, TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates), Color(128, 255, 0, 0));
         }
     }
-    catch (...)
-    {
-        fs.close();
-    }
-    
     return linedots;
 } 
 
@@ -592,7 +495,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hWnd, &ps);
         GetMapSize(hWnd);
-        vector<vector<Point>> linepoints =  PaintCity(hdc, RadialLineStep);
+        vector<vector<Point>> linepoints =  PaintCity(hdc, TransportationSystemAssumptions::RadialLineStep);
         EndPaint(hWnd, &ps);
     }
     break;
