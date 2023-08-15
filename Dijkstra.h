@@ -4,6 +4,9 @@
 //#include <bits/stdc++.h>
 #include <vector>
 #include <iostream>
+
+#include "DijkstraPath.h"
+
 using namespace std;
 // A Java program for Dijkstra's
 // single source shortest path
@@ -35,7 +38,7 @@ void printPath(int currentVertex, vector<int> parents, vector<int>& path)
 // using adjacency matrix
 // representation
 
-vector<vector<int>> dijkstra(vector<vector<int> > adjacencyMatrix, int startVertex)
+vector<DijkstraPath> dijkstra(vector<vector<int> > adjacencyMatrix, int startVertex)
 {
     int nVertices = adjacencyMatrix[0].size();
 
@@ -112,20 +115,19 @@ vector<vector<int>> dijkstra(vector<vector<int> > adjacencyMatrix, int startVert
         }
     }
 
-    vector<vector<int>> paths;
+    vector<DijkstraPath> paths;
     for (int vertexIndex = 0; vertexIndex < shortestDistances.size(); vertexIndex++)
     {
         if (vertexIndex != startVertex) 
         {
+            
             vector<int> path;
-            path.push_back(startVertex);
-            path.push_back(shortestDistances[vertexIndex]);
             printPath(vertexIndex, parents, path);
+            DijkstraPath dijkstra_path(startVertex, vertexIndex, shortestDistances[vertexIndex], path);
 
-            paths.push_back(path);
+            paths.push_back(dijkstra_path);
         }
     }
 
     return paths;
-
 }

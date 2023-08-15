@@ -1,8 +1,7 @@
 #include "TransportationLine.h"
 
-TransportationLine::TransportationLine(string _name, bool _bCircular)
+TransportationLine::TransportationLine(TransportationLineColor _color, bool _bCircular) : color(_color.color, _color.name)
 {
-	name = _name;
 	id = -1;
 	bCircular = _bCircular;
 

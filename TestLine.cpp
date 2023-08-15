@@ -15,6 +15,7 @@
 
 #include "TransportationSystem.h"
 #include "TransportationSystemAssumptions.h"
+#include "DijkstraPath.h"
 
 
 using namespace Gdiplus;
@@ -39,9 +40,13 @@ float MapRatio;
 Point MapLeftCorner;
 int lineWidth = 20;
 
+int originStop = -1;
+int destinationStop = -1;
+bool bFullRepaint = true;
+
 TransportationSystem transportationSystem;
 
-vector<TransportationLineColor> subwayLanes =
+vector<TransportationLineColor> subwayLines =
 {
     {Color(255, 255, 0, 0), "Bright Red" },
     {Color(255, 255, 165, 0), "Bright Orange"},
@@ -66,9 +71,12 @@ void GetMapSize(HWND hWnd)
     RECT windowSize;
     GetClientRect(hWnd, &windowSize);
     float screenSize = min(windowSize.bottom - windowSize.top, windowSize.right - windowSize.left);
+    
     MapRatio = screenSize / TransportationSystemAssumptions::MapSize;
     MapLeftCorner = Point(0, 0);
+    
     int diff = abs(((windowSize.bottom - windowSize.top) - (windowSize.right - windowSize.left)) / 2);
+    
     if (windowSize.bottom - windowSize.top > windowSize.right - windowSize.left) //taller than it is wide
         MapLeftCorner.Y = diff;
     else //wider than it is tall
@@ -87,10 +95,12 @@ TransportationStopCoordinates TranslateToMap(Point ScreenCoordinate)
                     (ScreenCoordinate.Y - MapLeftCorner.Y) / MapRatio);
 }
 
+void GetCityPoints();
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
-                     _In_opt_ HINSTANCE hPrevInstance,
-                     _In_ LPWSTR    lpCmdLine,
-                     _In_ int       nCmdShow)
+    _In_opt_ HINSTANCE hPrevInstance,
+    _In_ LPWSTR    lpCmdLine,
+    _In_ int       nCmdShow)
 {
     HWND                hWnd;
     MSG                 msg;
@@ -98,51 +108,55 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     GdiplusStartupInput gdiplusStartupInput;
     ULONG_PTR           gdiplusToken;
 
+    GetCityPoints();
+
     // Initialize GDI+.
     GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
     wndClass.style = CS_HREDRAW | CS_VREDRAW;
-wndClass.lpfnWndProc = WndProc;
-wndClass.cbClsExtra = 0;
-wndClass.cbWndExtra = 0;
-wndClass.hInstance = hInstance;
-wndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-wndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
-wndClass.lpszMenuName = NULL;
-wndClass.lpszClassName = TEXT("GettingStarted");
+    wndClass.lpfnWndProc = WndProc;
+    wndClass.cbClsExtra = 0;
+    wndClass.cbWndExtra = 0;
+    wndClass.hInstance = hInstance;
+    wndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+    wndClass.lpszMenuName = NULL;
+    wndClass.lpszClassName = TEXT("GettingStarted");
 
-RegisterClass(&wndClass);
+    RegisterClass(&wndClass);
 
-hWnd = CreateWindow(
-    TEXT("GettingStarted"),   // window class name
-    TEXT("Getting Started"),  // window caption
-    WS_OVERLAPPEDWINDOW,      // window style
-    CW_USEDEFAULT,            // initial x position
-    CW_USEDEFAULT,            // initial y position
-    CW_USEDEFAULT,            // initial x size
-    CW_USEDEFAULT,            // initial y size
-    NULL,                     // parent window handle
-    NULL,                     // window menu handle
-    hInstance,                // program instance handle
-    NULL);                    // creation parameters
+    hWnd = CreateWindow(
+        TEXT("GettingStarted"),   // window class name
+        TEXT("Getting Started"),  // window caption
+        WS_OVERLAPPEDWINDOW,      // window style
+        CW_USEDEFAULT,            // initial x position
+        CW_USEDEFAULT,            // initial y position
+        CW_USEDEFAULT,            // initial x size
+        CW_USEDEFAULT,            // initial y size
+        NULL,                     // parent window handle
+        NULL,                     // window menu handle
+        hInstance,                // program instance handle
+        NULL);                    // creation parameters
 
-ShowWindow(hWnd, SW_MAXIMIZE);
-GetMapSize(hWnd);
-UpdateWindow(hWnd);
+    ShowWindow(hWnd, SW_MAXIMIZE);
+    GetMapSize(hWnd);
+    UpdateWindow(hWnd);
 
-while (GetMessage(&msg, NULL, 0, 0))
-{
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
+    
+
+    while (GetMessage(&msg, NULL, 0, 0))
+    {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+    GdiplusShutdown(gdiplusToken);
+    return msg.wParam;
 }
 
-GdiplusShutdown(gdiplusToken);
-return msg.wParam;
-}
 
-
-void DrawStop(Graphics& graphics, Point center, Color color)
+void DrawStop(Graphics& graphics, Point center, Color color, string label)
 {
     Pen      pen(Color(255, 0, 0, 0));
     pen.SetWidth(2);
@@ -153,28 +167,40 @@ void DrawStop(Graphics& graphics, Point center, Color color)
     graphics.DrawEllipse(&pen, center.X, center.Y, lineWidth - 2, lineWidth - 2);
     SolidBrush brush(color);
     graphics.FillEllipse(&brush, center.X, center.Y, lineWidth - 3, lineWidth - 3);
+
+    FontFamily  fontFamily(L"Times New Roman");
+    Font        font(&fontFamily, 15, FontStyleRegular, UnitPixel);
+    PointF      pointF(center.X, center.Y);
+    SolidBrush  solidBrush(Color(255, 0, 0, 0));
+
+    std::wstring w;
+    copy(label.begin(), label.end(), back_inserter(w));
+    graphics.DrawString(w.c_str(), -1, &font, pointF, &solidBrush);
+    //graphics.DrawString(L"Hello", -1, &font, pointF, &solidBrush);
 }
 
 int CalculateLineStops(float L, float d)
 {
-    double numofstations = L / d;
+    float numofstations = L / d;
 
-    double ceilx = ceil(numofstations);
-    double floorx = floor(numofstations);
+    float ceilx = ceil(numofstations);
+    float floorx = floor(numofstations);
 
-    double valceil = abs(d - (L / (ceilx)));
-    double valfloor = abs(d - (L / (floorx)));
+    float valceil = abs(d - (L / ceilx));
+    float valfloor = abs(d - (L / floorx));
 
-    if (valceil < valfloor) numofstations = ceilx;
-    else numofstations = floorx;
+    if (valceil < valfloor) 
+        numofstations = ceilx;
+    else 
+        numofstations = floorx;
 
     return numofstations;
 }
 
-vector<TransportationStopCoordinates> GetInnerBounds(Graphics& graphics, TransportationStopCoordinates mapStart, TransportationStopCoordinates mapEnd, float stopLength, Color lineColor, Color stopColor, float innerL)
+vector<TransportationStopCoordinates> GetInnerBounds(TransportationStopCoordinates mapStart, TransportationStopCoordinates mapEnd, float stopLength, float innerL)
 {
-    Point start = TranslateToScreen(mapStart);
-    Point end = TranslateToScreen(mapEnd);
+    TransportationStopCoordinates start = mapStart;
+    TransportationStopCoordinates end = mapEnd;
     float L = TransportationSystemAssumptions::OuterCityDiameter;
     
 
@@ -182,23 +208,43 @@ vector<TransportationStopCoordinates> GetInnerBounds(Graphics& graphics, Transpo
     float outerL = (L - innerL);
 
     // Calculate the number of stations in the outer and inner sections
-    int totalstations = CalculateLineStops(innerL, stopLength/4);
+    int totalstations = CalculateLineStops(innerL, stopLength / 4);
 
     // Calculate the delta values for drawing lines and stops
-    int deltax = end.X - start.X;
-    int deltay = end.Y - start.Y;
+    float deltax = end.x - start.x;
+    float deltay = end.y - start.y;
     vector<TransportationStopCoordinates> innerpoints;
 
     //coordinates of the inner city points
-    Point innerbound1(start.X + (deltax * ((0.5 * (L - innerL)) / L)), start.Y + (deltay * ((0.5 * (L - innerL)) / L)));
-    TransportationStopCoordinates converted1 = TranslateToMap(innerbound1);
-    innerpoints.push_back(converted1);
-    Point innerbound2(end.X - (deltax * ((0.5 * (L - innerL)) / L)), end.Y - (deltay * ((0.5 * (L - innerL)) / L)));
-    TransportationStopCoordinates converted2 = TranslateToMap(innerbound2);
-    innerpoints.push_back(converted2);
+    TransportationStopCoordinates innerbound1(start.x + (deltax * ((0.5 * (L - innerL)) / L)), start.y + (deltay * ((0.5 * (L - innerL)) / L)));
+    innerpoints.push_back(innerbound1);
+    TransportationStopCoordinates innerbound2(end.x - (deltax * ((0.5 * (L - innerL)) / L)), end.y - (deltay * ((0.5 * (L - innerL)) / L)));
+    innerpoints.push_back(innerbound2);
+
     return (innerpoints);
 }
 
+vector<TransportationStopCoordinates> GetStraightLinePoints(TransportationStopCoordinates start, TransportationStopCoordinates end, float stopLength)
+{
+    float lineLength = sqrt(pow(start.x - end.x, 2) + pow(start.y - end.y, 2));
+
+    // Calculate the number of stations in the outer and inner sections
+    int totalstations = CalculateLineStops(lineLength, stopLength);
+
+    // Calculate the delta values for drawing lines and stops
+    float deltax = end.x - start.x;
+    float deltay = end.y - start.y;
+
+
+   vector<TransportationStopCoordinates> points;
+    for (int i = 0; i <= totalstations; i++)
+    {
+        TransportationStopCoordinates currentPoint(start.x + (deltax * (i / (float)totalstations)), start.y + (deltay * (i / (float)totalstations)));
+        points.push_back(currentPoint);
+    }
+    return points;
+}
+/*
 vector<Point> DrawStraightLine(Graphics& graphics, Point start, Point end, float stopLength, Color lineColor, Color stopColor)
 {
     float lineLength = sqrt(pow(start.X - end.X, 2) + pow(start.Y - end.Y, 2)) / MapRatio;
@@ -226,18 +272,71 @@ vector<Point> DrawStraightLine(Graphics& graphics, Point start, Point end, float
     }
     return points;
 }
-vector<Point> drawCircle(HDC hdc, float stepAngle, float stopLength, float diameter, Color color)
+*/
+vector<TransportationStopCoordinates> getCirclePoints(float stopLength, float diameter)
+{
+    const float fullRotation = 360.0;
+    
+    TransportationStopCoordinates center(TransportationSystemAssumptions::MapSize / 2, TransportationSystemAssumptions::MapSize / 2);
+    int currentcolor = 0;
+    int counter = 0;
+    int numoftimes = 180 / TransportationSystemAssumptions::RadialLineStep;
+    vector<TransportationStopCoordinates> allinnerbounds1;
+    vector<TransportationStopCoordinates> allinnerbounds2;
+
+    for (float currentAngle = 0; currentAngle < fullRotation / 2.0; currentAngle += TransportationSystemAssumptions::RadialLineStep)
+    {
+
+        float length = (TransportationSystemAssumptions::OuterCityDiameter) / 2.0;
+        float radians = (currentAngle) * (3.1415926 / 180.0);
+        float cosine = cos(radians);
+        float sine = sin(radians);
+
+        int startX = center.x - round(length * cosine);
+        int startY = center.y - round(length * sine);
+        int endX = center.x + round(length * cosine);
+        int endY = center.y + round(length * sine);
+
+        int deltax = endX - startX;
+        int deltay = endY - startY;
+
+        vector<TransportationStopCoordinates> innerbounds = (GetInnerBounds( TransportationStopCoordinates((startX), (startY)), TransportationStopCoordinates((endX), (endY)), stopLength, diameter));
+
+        TransportationStopCoordinates innerbound1 = innerbounds[0];
+        TransportationStopCoordinates innerbound2 = innerbounds[1];
+        allinnerbounds1.push_back(innerbounds[0]);
+        allinnerbounds2.push_back(innerbounds[1]);
+
+        counter++;
+    }
+    vector<TransportationStopCoordinates> allinnerbounds;
+    for (int i = 0; i < allinnerbounds1.size(); i++)
+        allinnerbounds.push_back(allinnerbounds1[i]);
+    for (int i = 0; i < allinnerbounds2.size(); i++)
+        allinnerbounds.push_back(allinnerbounds2[i]);
+    allinnerbounds.push_back(allinnerbounds1[0]);
+    vector<TransportationStopCoordinates> dotsoncircle;
+    for (int i = 0; i < allinnerbounds.size() -1; i++)
+    {
+        vector<TransportationStopCoordinates> dots = GetStraightLinePoints(allinnerbounds[i+1], allinnerbounds[i], stopLength);
+        //this_thread::sleep_for(10ms);
+        dotsoncircle.insert(dotsoncircle.begin(), dots.begin() + 1, dots.end());
+    }
+    return dotsoncircle;
+}
+/*
+vector<Point> drawCircle(HDC hdc, float stopLength, float diameter, Color color)
 {
     const float fullRotation = 360.0;
     Graphics graphics(hdc);
     Point center(TransportationSystemAssumptions::MapSize / 2, TransportationSystemAssumptions::MapSize / 2);
     int currentcolor = 0;
     int counter = 0;
-    int numoftimes = 180 / stepAngle;
+    int numoftimes = 180 / TransportationSystemAssumptions::RadialLineStep;
     vector<TransportationStopCoordinates> allinnerbounds1;
     vector<TransportationStopCoordinates> allinnerbounds2;
-
-    for (float currentAngle = 0; currentAngle < fullRotation / 2.0; currentAngle += stepAngle)
+    
+    for (float currentAngle = 0; currentAngle < fullRotation / 2.0; currentAngle += TransportationSystemAssumptions::RadialLineStep)
     {
 
         float length = (TransportationSystemAssumptions::OuterCityDiameter) / 2.0;
@@ -278,58 +377,90 @@ vector<Point> drawCircle(HDC hdc, float stepAngle, float stopLength, float diame
     }
     return dotsoncircle;
 }
-float Distance(const Point& p1, const Point& p2) {
-    return std::sqrt((p2.X - p1.X) * (p2.X - p1.X) + (p2.Y - p1.Y) * (p2.Y - p1.Y));
+*/
+
+void AddLineToSystem(vector<TransportationStopCoordinates> stops, TransportationLineColor line_color, bool bCircular)
+{
+    int line_id = transportationSystem.AddLine(TransportationLine(line_color, true));
+    for (TransportationStopCoordinates p : stops)
+        transportationSystem.AddStop(TransportationStop(p, line_id));
 }
 
-void AddLineToSystem(vector<Point> stops, string line_name, bool bCircular)
+void PaintPath(Graphics& graphics)
 {
-    int line_id = transportationSystem.AddLine(TransportationLine(line_name, true));
-    for (Point p : stops)
-        transportationSystem.AddStop(TransportationStop(TranslateToMap(p), line_id));
-}
+    if (originStop != -1)
+    {
+        if (destinationStop != -1)
+        {
+            string stop_label = transportationSystem.GetStopLabel(destinationStop);
+            DrawStop(graphics, TranslateToScreen(transportationSystem.stops[destinationStop].mapCoordinates), Color(255, 0, 0, 0), stop_label);
+            DijkstraPath path = transportationSystem.PathBetweenStops[{originStop, destinationStop}];
+            
+            Pen pen(Color(255, 255, 255, 255));
+            pen.SetWidth(2);
 
-vector<vector<Point>> PaintCity(HDC hdc, float stepAngle)
+            for (int i = 0; i < path.stops.size() - 1; i++)
+            {
+                Point start = TranslateToScreen(transportationSystem.stops[path.stops[i]].mapCoordinates);
+                Point end = TranslateToScreen(transportationSystem.stops[path.stops[i + 1]].mapCoordinates);
+                graphics.DrawLine(&pen, start.X, start.Y, end.X, end.Y);
+            }
+            // Draw the main line
+            
+            this_thread::sleep_for(10ms);
+        }
+        else
+        {
+            string stop_label = transportationSystem.GetStopLabel(originStop);
+            DrawStop(graphics, TranslateToScreen(transportationSystem.stops[originStop].mapCoordinates), Color(255, 0, 0, 0), stop_label);
+        }
+    }
+}
+void GetCityPoints()
 {
-    vector<vector<Point>> linedots;
+    //vector<vector<Point>> linedots;
     const float fullRotation = 360.0;
 
-    Point center(TransportationSystemAssumptions::MapSize / 2, TransportationSystemAssumptions::MapSize / 2);
-    std::vector<std::vector<Point>> linesandstops;
-
-    Graphics graphics(hdc);
-
+    TransportationStopCoordinates center(TransportationSystemAssumptions::MapSize / 2, TransportationSystemAssumptions::MapSize / 2);
 
     int currentcolor = 0;
     int counter = 0;
-    int numoftimes = 180 / stepAngle;
+    int numoftimes = 180 / TransportationSystemAssumptions::RadialLineStep;
     vector<TransportationStopCoordinates> allinnerbounds1;
     vector<TransportationStopCoordinates> allinnerbounds2;
     vector<TransportationStopCoordinates> allmidbounds1;
     vector<TransportationStopCoordinates> allmidbounds2;
-    for (float currentAngle = 0; currentAngle < fullRotation / 2.0; currentAngle += stepAngle)
+    for (float currentAngle = 0; currentAngle < fullRotation / 2.0; currentAngle += TransportationSystemAssumptions::RadialLineStep)
     {
-        vector<Point> CollectionofLinePoints;
+        vector<TransportationStopCoordinates> CollectionofLinePoints;
 
         float length = (TransportationSystemAssumptions::OuterCityDiameter) / 2.0;
         float radians = (currentAngle) * (3.1415926 / 180.0);
         float cosine = cos(radians);
         float sine = sin(radians);
 
-        int startX = center.X - round(length * cosine);
-        int startY = center.Y - round(length * sine);
-        int endX = center.X + round(length * cosine);
-        int endY = center.Y + round(length * sine);
+        float startX = center.x - round(length * cosine);
+        float startY = center.y - round(length * sine);
+        float endX = center.x + round(length * cosine);
+        float endY = center.y + round(length * sine);
 
-        //This function draws all the points on the first outer secton
-        int deltax = endX - startX;
-        int deltay = endY - startY;
+        float deltax = endX - startX;
+        float deltay = endY - startY;
 
         float lineLength = sqrt(pow(startX - endX, 2) + pow(startY - endY, 2));
 
         //Gets inner bounds only
-        vector<TransportationStopCoordinates> innerbounds = GetInnerBounds(graphics, TransportationStopCoordinates((startX), (startY)), TransportationStopCoordinates((endX), (endY)), TransportationSystemAssumptions::InnerCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255), TransportationSystemAssumptions::InnerCityDiameter);
-        vector<TransportationStopCoordinates> midbounds = GetInnerBounds(graphics, TransportationStopCoordinates((startX), (startY)), TransportationStopCoordinates((endX), (endY)), TransportationSystemAssumptions::InnerCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255), TransportationSystemAssumptions::MiddleCityDiameter);
+        vector<TransportationStopCoordinates> innerbounds = 
+            GetInnerBounds(TransportationStopCoordinates(startX, startY), 
+                TransportationStopCoordinates(endX, endY), 
+                TransportationSystemAssumptions::InnerCityStopLength, 
+                TransportationSystemAssumptions::InnerCityDiameter);
+
+        vector<TransportationStopCoordinates> midbounds = 
+            GetInnerBounds(TransportationStopCoordinates(startX, startY), 
+                TransportationStopCoordinates(endX, endY), 
+                TransportationSystemAssumptions::InnerCityStopLength, 
+                TransportationSystemAssumptions::MiddleCityDiameter);
 
         TransportationStopCoordinates innerbound1 = innerbounds[0];
         TransportationStopCoordinates innerbound2 = innerbounds[1];
@@ -340,69 +471,111 @@ vector<vector<Point>> PaintCity(HDC hdc, float stepAngle)
         TransportationStopCoordinates midbound2 = midbounds[1];
         allmidbounds1.push_back(midbounds[0]);
         allmidbounds2.push_back(midbounds[1]);
-
-        vector<Point> outerlinepoints1 = DrawStraightLine(graphics, TranslateToScreen(TransportationStopCoordinates(startX, startY)), TranslateToScreen(midbound1), TransportationSystemAssumptions::OuterCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
+        
+        vector<TransportationStopCoordinates> outerlinepoints1 = GetStraightLinePoints(TransportationStopCoordinates(startX, startY), midbound1, TransportationSystemAssumptions::OuterCityStopLength);
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), outerlinepoints1.begin(), outerlinepoints1.end());
 
-        vector<Point> midlinepoints1 = DrawStraightLine(graphics, TranslateToScreen(midbound1), TranslateToScreen(innerbound1), TransportationSystemAssumptions::OuterCityStopLength / 2, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
+        vector<TransportationStopCoordinates> midlinepoints1 = GetStraightLinePoints(midbound1, innerbound1, TransportationSystemAssumptions::OuterCityStopLength / 2);
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), midlinepoints1.begin(), midlinepoints1.end());
 
-        vector<Point> innerlinepoints = DrawStraightLine(graphics, TranslateToScreen(innerbound1), TranslateToScreen(innerbound2), TransportationSystemAssumptions::InnerCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
+        vector<TransportationStopCoordinates> innerlinepoints = GetStraightLinePoints(innerbound1, innerbound2, TransportationSystemAssumptions::InnerCityStopLength);
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), innerlinepoints.begin(), innerlinepoints.end());
 
-        vector<Point> midlinepoints2 = DrawStraightLine(graphics, TranslateToScreen(innerbound2), TranslateToScreen(midbound2), TransportationSystemAssumptions::OuterCityStopLength / 2, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
+        vector<TransportationStopCoordinates> midlinepoints2 = GetStraightLinePoints(innerbound2, midbound2, TransportationSystemAssumptions::OuterCityStopLength / 2);
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), midlinepoints2.begin(), midlinepoints2.end());
 
-        vector<Point> outerlinepoints2 = DrawStraightLine(graphics, TranslateToScreen(midbound2), TranslateToScreen(TransportationStopCoordinates(endX, endY)), TransportationSystemAssumptions::OuterCityStopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255));
+        vector<TransportationStopCoordinates> outerlinepoints2 = GetStraightLinePoints(midbound2, TransportationStopCoordinates(endX, endY), TransportationSystemAssumptions::OuterCityStopLength);
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), outerlinepoints2.begin(), outerlinepoints2.end());
 
-        AddLineToSystem(CollectionofLinePoints, subwayLanes[currentcolor].name, false);
+        AddLineToSystem(CollectionofLinePoints, subwayLines[currentcolor], false);
 
-        //linesandstops.push_back(points);
-        if (currentcolor != 15) currentcolor++;
-        else currentcolor = 0;
         counter++;
-        linedots.push_back(CollectionofLinePoints);
-
-
     }
-
-    Pen pen(Color(255, 0, 0, 0));
-    pen.SetWidth(lineWidth);
-
-    pen.SetEndCap(LineCapRound);
-    pen.SetStartCap(LineCapRound);
-
-    vector<Point> innercircle = drawCircle(hdc, stepAngle, TransportationSystemAssumptions::InnerCityStopLength, TransportationSystemAssumptions::InnerCityDiameter, subwayLanes[currentcolor].color);
-    linedots.push_back(innercircle);
-    AddLineToSystem(innercircle, subwayLanes[currentcolor].name, true);
+    
+    vector<TransportationStopCoordinates> innercircle = getCirclePoints(TransportationSystemAssumptions::InnerCityStopLength, TransportationSystemAssumptions::InnerCityDiameter);
+    AddLineToSystem(innercircle, subwayLines[currentcolor], true);
 
     currentcolor++;
     int numberofrings = 1;
-    vector<Point> outercircle = drawCircle(hdc, stepAngle, TransportationSystemAssumptions::OuterCityStopLength / 2, TransportationSystemAssumptions::OuterCityDiameter / 2, subwayLanes[currentcolor].color);
-    linedots.push_back(outercircle);
-    AddLineToSystem(outercircle, subwayLanes[currentcolor].name, true);
+    vector<TransportationStopCoordinates> outercircle = getCirclePoints(TransportationSystemAssumptions::OuterCityStopLength / 2, TransportationSystemAssumptions::OuterCityDiameter / 2);
+    AddLineToSystem(outercircle, subwayLines[currentcolor], true);
 
-    transportationSystem.CalculateStopDistances();
-    transportationSystem.CalculateStopTimes();
-    transportationSystem.CalculateIntersections();
-    transportationSystem.CalculatePaths(TransportationSystemAssumptions::transferTime, TransportationSystemAssumptions::addlTransferTime);
+    transportationSystem.CalculateSuportingInfo();
 
+}
 
+void PaintCity(HDC hdc)
+{
 
+    Graphics graphics(hdc);
+
+    
+    if (!bFullRepaint)
+    {
+        PaintPath(graphics);
+        return;
+    }
+    
+    int currentcolor = 0;
+    for (int i = 0; i < transportationSystem.lines.size(); i++)
+    {
+        Pen pen(subwayLines[currentcolor].color);
+        pen.SetWidth(lineWidth);
+        pen.SetEndCap(LineCapRound);
+        pen.SetStartCap(LineCapRound);
+        for (int j = 0; j < transportationSystem.lines[i].stops.size() - 1; j++)
+        {
+            // Draw the main line
+            int stop_idx = transportationSystem.lines[i].stops[j];
+            int next_idx = transportationSystem.lines[i].stops[j + 1];
+
+            Point start = TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates);
+            Point end = TranslateToScreen(transportationSystem.stops[next_idx].mapCoordinates);
+
+            graphics.DrawLine(&pen, start.X, start.Y, end.X, end.Y);
+           
+
+            if (transportationSystem.lines[i].bCircular)
+            {
+                int first_idx = transportationSystem.lines[i].stops[0];
+                int last_idx = transportationSystem.lines[i].stops[transportationSystem.lines[i].stops.size()-1];
+                Point first = TranslateToScreen(transportationSystem.stops[first_idx].mapCoordinates);
+                Point last = TranslateToScreen(transportationSystem.stops[last_idx].mapCoordinates);
+                graphics.DrawLine(&pen, first.X, first.Y, last.X, last.Y);
+            }
+            
+        }
+        
+        if (currentcolor != 15) currentcolor++;
+        else currentcolor = 0;
+        
+    }
 
     for (TransportationLine line : transportationSystem.lines)
     {
         for (int stop_idx : line.stops)
         {
-            std::this_thread::sleep_for(10ms);
-            DrawStop(graphics, TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates), Color(128, 128, 128, 128));
-            std::this_thread::sleep_for(10ms);
-            DrawStop(graphics, TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates), Color(128, 255, 0, 0));
+            //std::this_thread::sleep_for(10ms);
+            string stop_label = transportationSystem.GetStopLabel(stop_idx);
+            DrawStop(graphics, TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates), Color(255, 255, 255, 255), stop_label);
         }
     }
-    return linedots;
+    for (TransportationLine line : transportationSystem.lines)
+    {
+        for (int stop_idx : line.stops)
+        {
+            string stop_label = transportationSystem.GetStopLabel(stop_idx);
+
+            std::this_thread::sleep_for(10ms);
+            DrawStop(graphics, TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates), Color(128, 128, 128, 128), stop_label);
+            std::this_thread::sleep_for(10ms);
+            DrawStop(graphics, TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates), Color(128, 255, 0, 0), stop_label);
+        }
+    }
+
+    PaintPath(graphics);
 } 
+
 
 
 //
@@ -495,13 +668,57 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hWnd, &ps);
         GetMapSize(hWnd);
-        vector<vector<Point>> linepoints =  PaintCity(hdc, TransportationSystemAssumptions::RadialLineStep);
+        PaintCity(hdc);
         EndPaint(hWnd, &ps);
     }
     break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
+    
+    case WM_LBUTTONDOWN:
+    {
+        Point pt;
+        pt.X = LOWORD(lParam);
+        pt.Y = HIWORD(lParam);
+
+        int stop_idx = transportationSystem.FindClosestTransportartionStop(TranslateToMap(pt), 0.15);
+
+        if (stop_idx > 0) //we clicked on stop
+        {
+            if (originStop != -1 && destinationStop != -1) // start from scratch
+            {
+                originStop = stop_idx;
+                bFullRepaint = true;
+                RECT windowSize;
+                GetClientRect(hWnd, &windowSize);
+                InvalidateRect(hWnd, &windowSize, true);
+                break;
+            }
+
+            if (originStop == -1)
+            {
+                originStop = stop_idx;
+                bFullRepaint = false;
+                RECT rc{ pt.X - 30, pt.Y - 30, pt.X + 30, pt.Y + 30 };
+                InvalidateRect(hWnd, &rc, false);
+            }
+            else
+            {
+                if (stop_idx != originStop)
+                {
+                    destinationStop = stop_idx;
+                    //repaint while also plotting a path between two points
+                    bFullRepaint = false;
+                    RECT windowSize;
+                    GetClientRect(hWnd, &windowSize);
+                    InvalidateRect(hWnd, &windowSize, false);
+                }
+            }
+        }
+        
+    }
+    break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }

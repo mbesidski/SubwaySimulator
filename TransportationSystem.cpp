@@ -38,6 +38,25 @@ int TransportationSystem::AddLine(TransportationLine line)
 	return line.id;
 }
 
+string TransportationSystem::GetStopLabel(int stop_idx)
+{
+	string label;
+
+	if (IntersectionMap.find(stop_idx) != IntersectionMap.end()) //this stop is a part of an intersection
+	{
+		for (int i = 0; i < intersections[IntersectionMap[stop_idx]].stops.size(); i++)
+		{
+			label += to_string(intersections[IntersectionMap[stop_idx]].stops[i]);
+			if (i < intersections[IntersectionMap[stop_idx]].stops.size() - 1)
+				label += ",";
+		}
+	}
+	else
+		label = to_string(stop_idx);
+
+	return label;
+}
+
 void TransportationSystem::CalculateStopDistances()
 {
 	for (TransportationLine l : lines)
@@ -113,9 +132,16 @@ void TransportationSystem::CalculateIntersections()
 			}
 		}
 	}
+
+	for (int i = 0; i < intersections.size(); i++)
+	{
+		TransportationIntersection intersection = intersections[i];
+		for (int stop_idx : intersection.stops)
+			IntersectionMap[stop_idx] = i;
+	}
 }
 
-void TransportationSystem::CalculatePaths(int transferTime, int addlTransferTime)
+void TransportationSystem::CalculatePaths()
 {
 	vector<vector<int>> adjacency_matrix;
 	adjacency_matrix.resize(stops.size(), vector<int>(stops.size(), 0));
@@ -131,14 +157,39 @@ void TransportationSystem::CalculatePaths(int transferTime, int addlTransferTime
 			{
 				if (j == k) continue;
 				
-				adjacency_matrix[intersections[i].stops[j]][intersections[i].stops[k]] = transferTime + addlTransferTime*(stops.size()-2);
+				adjacency_matrix[intersections[i].stops[j]][intersections[i].stops[k]] = 
+					TransportationSystemAssumptions::transferTime + TransportationSystemAssumptions::addlTransferTime*(stops.size()-2);
 
 			}
 		}
 	}
+
 	for (TransportationStop stop : stops)
 	{
-		vector<vector<int>> paths = dijkstra(adjacency_matrix, stop.id);
-		cout << paths.size();
+		vector<DijkstraPath> paths = dijkstra(adjacency_matrix, stop.id);
+		
+		for (auto path : paths)
+			PathBetweenStops[{path.origin, path.destination}] = path;
 	}
+}
+
+void TransportationSystem::CalculateSuportingInfo()
+{
+	CalculateStopDistances();
+	CalculateStopTimes();
+	CalculateIntersections();
+	CalculatePaths();
+
+}
+
+//proximity is in kilometers from mouse click point
+int TransportationSystem::FindClosestTransportartionStop(TransportationStopCoordinates coord, float proximity)
+{
+	for (TransportationStop stop : stops)
+	{
+		if (Utils::CalculateDistance(stop.mapCoordinates, coord) < proximity)
+			return stop.id;
+	}
+
+	return -1;
 }

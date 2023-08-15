@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="DijkstraPath.h" />
     <ClInclude Include="Dijkstra.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
@@ -154,6 +155,7 @@
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DijkstraPath.cpp" />
     <ClCompile Include="TestLine.cpp" />
     <ClCompile Include="TransportationSystemAssumptions.cpp" />
     <ClCompile Include="TransportationIntersection.cpp" />

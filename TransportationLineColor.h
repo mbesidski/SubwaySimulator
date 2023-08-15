@@ -15,6 +15,5 @@ public:
     string name;
 
     TransportationLineColor(Color col, string nm);
-    //TransportationLineColor(const TransportationLineColor& sl);
 };
 
