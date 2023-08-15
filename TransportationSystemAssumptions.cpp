@@ -11,5 +11,5 @@ float TransportationSystemAssumptions::MiddleCityDiameter = 15;
 float TransportationSystemAssumptions::RadialLineStep = 45.0;
 float TransportationSystemAssumptions::OuterCityStopLength = 4;
 float TransportationSystemAssumptions::InnerCityStopLength = OuterCityStopLength / 4.0;
-int TransportationSystemAssumptions::transferTime = 60; //sec - transfer to another line on intersection
-int TransportationSystemAssumptions::addlTransferTime = 60; //sec - penalty for additinal line past two on intersection transfer
+int TransportationSystemAssumptions::transferTime = 120; //sec - transfer to another line on intersection
+int TransportationSystemAssumptions::addlTransferTime = 240; //sec - penalty for additinal line past two on intersection transfer

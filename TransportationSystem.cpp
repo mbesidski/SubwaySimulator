@@ -67,6 +67,7 @@ void TransportationSystem::CalculateStopDistances()
 			TransportationStop next_stop = stops[l.stops[i + 1]];
 			float distance = Utils::CalculateDistance(curr_stop.mapCoordinates, next_stop.mapCoordinates);
 			DistanceBetweenStops[{curr_stop.id, next_stop.id}] = distance;
+			DistanceBetweenStops[{next_stop.id, curr_stop.id}] = distance;
 		}
 
 		if (l.bCircular)
@@ -151,15 +152,16 @@ void TransportationSystem::CalculatePaths()
 
 	for (int i = 0; i < intersections.size(); i++)
 	{
+		int transfer_penalty = 
+			TransportationSystemAssumptions::transferTime + 
+			TransportationSystemAssumptions::addlTransferTime * (intersections[i].stops.size() - 2);
+
 		for (int j = 0; j < intersections[i].stops.size(); j++)
 		{
 			for (int k = 0; k < intersections[i].stops.size(); k++)
 			{
-				if (j == k) continue;
-				
-				adjacency_matrix[intersections[i].stops[j]][intersections[i].stops[k]] = 
-					TransportationSystemAssumptions::transferTime + TransportationSystemAssumptions::addlTransferTime*(stops.size()-2);
-
+				if (j != k) 
+					adjacency_matrix[intersections[i].stops[j]][intersections[i].stops[k]] = transfer_penalty;
 			}
 		}
 	}
