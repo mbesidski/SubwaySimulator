@@ -29,7 +29,9 @@ public:
 
 	int FindClosestTransportartionStop(TransportationStopCoordinates coord, float proximity);
 
-	string GetStopLabel(int stop_idx);
+	wstring GetStopLabel(int stop_idx);
+
+	wstring GetStopInfo(int stop_idx);
 
 	TransportationSystem();
 
@@ -38,5 +40,6 @@ public:
 	void CalculateIntersections();
 	void CalculatePaths();
 	void CalculateSuportingInfo();
+	void CalculatePopulationDistribution();
 };
 

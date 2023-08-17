@@ -37,22 +37,66 @@ int TransportationSystem::AddLine(TransportationLine line)
 
 	return line.id;
 }
-
-string TransportationSystem::GetStopLabel(int stop_idx)
+wstring TransportationSystem::GetStopInfo(int stop_idx)
 {
-	string label;
+	wstring label;
+
+	if (IntersectionMap.find(stop_idx) != IntersectionMap.end())
+	{
+		label = L"Intersection " + to_wstring(IntersectionMap[stop_idx]) + L"\n";
+		label += L"Stops ";
+		wstring lines = L"Lines ";
+		wstring spaces = L"";
+
+		for (int i = 0; i < intersections[IntersectionMap[stop_idx]].stops.size(); i++)
+		{
+			if (i > 0)
+			{
+				label += L", ";
+				lines += L", ";
+			}
+			
+			label += to_wstring(intersections[IntersectionMap[stop_idx]].stops[i]);
+			lines += to_wstring(stops[stop_idx].line_id);
+
+			spaces += L"Stop " + to_wstring(intersections[IntersectionMap[stop_idx]].stops[i]) + L"  ";
+			spaces += L"ResidentSpaces " + to_wstring(stops[stop_idx].ResidentSpaces) + L"  ";
+			spaces += L"WorkSpaces " + to_wstring(stops[stop_idx].WorkSpaces) + L"\n";
+		}
+		label += L"\n";
+		label += lines + L"\n";
+		label += spaces;
+	}
+	else
+	{
+		label = L"Stop " + to_wstring(stop_idx) + L"\n";
+		label += L"Line " + to_wstring(stops[stop_idx].line_id) + L"\n";
+
+		label += L"ResidentSpaces " + to_wstring(stops[stop_idx].ResidentSpaces) + L"\n";
+		label += L"WorkSpaces " + to_wstring(stops[stop_idx].WorkSpaces) + L"\n";
+	}
+
+	label += L"Map Coordinates " + to_wstring(stops[stop_idx].mapCoordinates.x) + L", " + to_wstring(stops[stop_idx].mapCoordinates.y) + L"\n";
+
+	return label;
+}
+
+wstring TransportationSystem::GetStopLabel(int stop_idx)
+{
+	wstring label;
 
 	if (IntersectionMap.find(stop_idx) != IntersectionMap.end()) //this stop is a part of an intersection
 	{
-		for (int i = 0; i < intersections[IntersectionMap[stop_idx]].stops.size(); i++)
+		/*for (int i = 0; i < intersections[IntersectionMap[stop_idx]].stops.size(); i++)
 		{
 			label += to_string(intersections[IntersectionMap[stop_idx]].stops[i]);
 			if (i < intersections[IntersectionMap[stop_idx]].stops.size() - 1)
 				label += ",";
-		}
+		}*/
+		label = L"i" + to_wstring(IntersectionMap[stop_idx]);
 	}
 	else
-		label = to_string(stop_idx);
+		label = to_wstring(stop_idx);
 
 	return label;
 }
@@ -154,7 +198,7 @@ void TransportationSystem::CalculatePaths()
 	{
 		int transfer_penalty = 
 			TransportationSystemAssumptions::transferTime + 
-			TransportationSystemAssumptions::addlTransferTime * (intersections[i].stops.size() - 2);
+			TransportationSystemAssumptions::addlTransferTime * (intersections[i].stops.size() - 2) / 2.0;
 
 		for (int j = 0; j < intersections[i].stops.size(); j++)
 		{
@@ -175,13 +219,18 @@ void TransportationSystem::CalculatePaths()
 	}
 }
 
+void TransportationSystem::CalculatePopulationDistribution()
+{
+
+}
+
 void TransportationSystem::CalculateSuportingInfo()
 {
 	CalculateStopDistances();
 	CalculateStopTimes();
 	CalculateIntersections();
 	CalculatePaths();
-
+	CalculatePopulationDistribution();
 }
 
 //proximity is in kilometers from mouse click point

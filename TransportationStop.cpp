@@ -4,4 +4,7 @@ TransportationStop::TransportationStop(TransportationStopCoordinates _coords, in
 {
 	id = -1;
 	line_id = _line_id;
+
+	ResidentSpaces = 0;
+	WorkSpaces = 0;
 }

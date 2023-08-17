@@ -156,7 +156,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 }
 
 
-void DrawStop(Graphics& graphics, Point center, Color color, string label)
+void DrawStop(Graphics& graphics, Point center, Color color, wstring label)
 {
     Pen      pen(Color(255, 0, 0, 0));
     pen.SetWidth(2);
@@ -170,13 +170,10 @@ void DrawStop(Graphics& graphics, Point center, Color color, string label)
 
     FontFamily  fontFamily(L"Times New Roman");
     Font        font(&fontFamily, 15, FontStyleRegular, UnitPixel);
-    PointF      pointF(center.X, center.Y);
+    PointF      pointF(center.X - 1, center.Y + 1);
     SolidBrush  solidBrush(Color(255, 0, 0, 0));
 
-    std::wstring w;
-    copy(label.begin(), label.end(), back_inserter(w));
-    graphics.DrawString(w.c_str(), -1, &font, pointF, &solidBrush);
-    //graphics.DrawString(L"Hello", -1, &font, pointF, &solidBrush);
+    graphics.DrawString(label.c_str(), -1, &font, pointF, &solidBrush);
 }
 
 int CalculateLineStops(float L, float d)
@@ -244,35 +241,7 @@ vector<TransportationStopCoordinates> GetStraightLinePoints(TransportationStopCo
     }
     return points;
 }
-/*
-vector<Point> DrawStraightLine(Graphics& graphics, Point start, Point end, float stopLength, Color lineColor, Color stopColor)
-{
-    float lineLength = sqrt(pow(start.X - end.X, 2) + pow(start.Y - end.Y, 2)) / MapRatio;
 
-    // Calculate the number of stations in the outer and inner sections
-    int totalstations = CalculateLineStops(lineLength, stopLength);
-
-    // Calculate the delta values for drawing lines and stops
-    int deltax = end.X - start.X;
-    int deltay = end.Y - start.Y;
-
-    Pen pen(lineColor);
-    pen.SetWidth(lineWidth);
-    pen.SetEndCap(LineCapRound);
-    pen.SetStartCap(LineCapRound);
-
-    // Draw the main line
-    graphics.DrawLine(&pen, start.X, start.Y, end.X, end.Y);
-    std::vector<Point> points;
-    for (int i = 0; i <= totalstations; i++)
-    {
-        Point currentPoint(start.X + (deltax * ((float)(i) / (float)totalstations)), start.Y + (deltay * ((float)(i) / (float)totalstations)));
-        DrawStop(graphics, currentPoint, stopColor);
-        points.push_back(currentPoint);
-    }
-    return points;
-}
-*/
 vector<TransportationStopCoordinates> getCirclePoints(float stopLength, float diameter)
 {
     const float fullRotation = 360.0;
@@ -324,60 +293,6 @@ vector<TransportationStopCoordinates> getCirclePoints(float stopLength, float di
     }
     return dotsoncircle;
 }
-/*
-vector<Point> drawCircle(HDC hdc, float stopLength, float diameter, Color color)
-{
-    const float fullRotation = 360.0;
-    Graphics graphics(hdc);
-    Point center(TransportationSystemAssumptions::MapSize / 2, TransportationSystemAssumptions::MapSize / 2);
-    int currentcolor = 0;
-    int counter = 0;
-    int numoftimes = 180 / TransportationSystemAssumptions::RadialLineStep;
-    vector<TransportationStopCoordinates> allinnerbounds1;
-    vector<TransportationStopCoordinates> allinnerbounds2;
-    
-    for (float currentAngle = 0; currentAngle < fullRotation / 2.0; currentAngle += TransportationSystemAssumptions::RadialLineStep)
-    {
-
-        float length = (TransportationSystemAssumptions::OuterCityDiameter) / 2.0;
-        float radians = (currentAngle) * (3.1415926 / 180.0);
-        float cosine = cos(radians);
-        float sine = sin(radians);
-
-        int startX = center.X - round(length * cosine);
-        int startY = center.Y - round(length * sine);
-        int endX = center.X + round(length * cosine);
-        int endY = center.Y + round(length * sine);
-
-        int deltax = endX - startX;
-        int deltay = endY - startY;
-
-        vector<TransportationStopCoordinates> innerbounds = (GetInnerBounds(graphics, TransportationStopCoordinates((startX), (startY)), TransportationStopCoordinates((endX), (endY)), stopLength, subwayLanes[currentcolor].color, Color(255, 255, 255, 255), diameter));
-
-        TransportationStopCoordinates innerbound1 = innerbounds[0];
-        TransportationStopCoordinates innerbound2 = innerbounds[1];
-        allinnerbounds1.push_back(innerbounds[0]);
-        allinnerbounds2.push_back(innerbounds[1]);
-
-        counter++;
-    }
-    vector<TransportationStopCoordinates> allinnerbounds;
-    for (int i = 0; i < allinnerbounds1.size(); i++)
-        allinnerbounds.push_back(allinnerbounds1[i]);
-    for (int i = 0; i < allinnerbounds2.size(); i++)
-        allinnerbounds.push_back(allinnerbounds2[i]);
-    allinnerbounds.push_back(allinnerbounds1[0]);
-    vector<Point> dotsoncircle;
-    for (int i = 0; i < allinnerbounds.size() - 1; i++)
-    {
-
-        vector<Point> dots = DrawStraightLine(graphics, TranslateToScreen(allinnerbounds[i]), TranslateToScreen(allinnerbounds[i + 1]), stopLength, color, Color(255, 255, 255, 255));
-        std::this_thread::sleep_for(10ms);
-        dotsoncircle.insert(dotsoncircle.end(), dots.begin() + 1, dots.end());
-    }
-    return dotsoncircle;
-}
-*/
 
 void AddLineToSystem(vector<TransportationStopCoordinates> stops, TransportationLineColor line_color, bool bCircular)
 {
@@ -392,7 +307,7 @@ void PaintPath(Graphics& graphics)
     {
         if (destinationStop != -1)
         {
-            string stop_label = transportationSystem.GetStopLabel(destinationStop);
+            wstring stop_label = transportationSystem.GetStopLabel(destinationStop);
             DrawStop(graphics, TranslateToScreen(transportationSystem.stops[destinationStop].mapCoordinates), Color(255, 0, 0, 0), stop_label);
             DijkstraPath path = transportationSystem.PathBetweenStops[{originStop, destinationStop}];
             
@@ -411,7 +326,7 @@ void PaintPath(Graphics& graphics)
         }
         else
         {
-            string stop_label = transportationSystem.GetStopLabel(originStop);
+            wstring stop_label = transportationSystem.GetStopLabel(originStop);
             DrawStop(graphics, TranslateToScreen(transportationSystem.stops[originStop].mapCoordinates), Color(255, 0, 0, 0), stop_label);
         }
     }
@@ -555,21 +470,20 @@ void PaintCity(HDC hdc)
     {
         for (int stop_idx : line.stops)
         {
-            //std::this_thread::sleep_for(10ms);
-            string stop_label = transportationSystem.GetStopLabel(stop_idx);
-            DrawStop(graphics, TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates), Color(255, 255, 255, 255), stop_label);
+            wstring stop_label = transportationSystem.GetStopLabel(stop_idx);
+            DrawStop(graphics, TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates), Color(128, 128, 128, 128), stop_label);
         }
     }
     for (TransportationLine line : transportationSystem.lines)
     {
         for (int stop_idx : line.stops)
         {
-            string stop_label = transportationSystem.GetStopLabel(stop_idx);
+            wstring stop_label = transportationSystem.GetStopLabel(stop_idx);
 
             std::this_thread::sleep_for(10ms);
-            DrawStop(graphics, TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates), Color(128, 128, 128, 128), stop_label);
-            std::this_thread::sleep_for(10ms);
             DrawStop(graphics, TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates), Color(128, 255, 0, 0), stop_label);
+            std::this_thread::sleep_for(10ms);
+            DrawStop(graphics, TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates), Color(255, 255, 255, 255), stop_label);
         }
     }
 
@@ -684,7 +598,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         int stop_idx = transportationSystem.FindClosestTransportartionStop(TranslateToMap(pt), 0.15);
 
-        if (stop_idx > 0) //we clicked on stop
+        if (stop_idx >= 0) //we clicked on stop
         {
             if (originStop != -1 && destinationStop != -1) // start from scratch
             {
@@ -717,6 +631,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         
+    }
+    break;
+    case WM_RBUTTONDOWN:
+    {
+        Point pt;
+        pt.X = LOWORD(lParam);
+        pt.Y = HIWORD(lParam);
+
+        int stop_idx = transportationSystem.FindClosestTransportartionStop(TranslateToMap(pt), 0.15);
+
+        if (stop_idx >= 0) //we clicked on stop
+            MessageBox(hWnd, transportationSystem.GetStopInfo(stop_idx).c_str(), L"Transportation Stop", 0);
     }
     break;
     default:

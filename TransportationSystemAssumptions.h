@@ -15,5 +15,7 @@ public:
 	static float InnerCityStopLength;
 	static int transferTime;
 	static int addlTransferTime;
+
+	static int CommutingPopulation; //we assume one commuter per household for simplicity
 };
 
