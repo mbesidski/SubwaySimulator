@@ -57,7 +57,7 @@ wstring TransportationSystem::GetStopInfo(int stop_idx)
 			}
 			
 			label += to_wstring(intersections[IntersectionMap[stop_idx]].stops[i]);
-			lines += to_wstring(stops[stop_idx].line_id);
+			lines += to_wstring(stops[intersections[IntersectionMap[stop_idx]].stops[i]].line_id);
 
 			spaces += L"Stop " + to_wstring(intersections[IntersectionMap[stop_idx]].stops[i]) + L"  ";
 			spaces += L"ResidentSpaces " + to_wstring(stops[stop_idx].ResidentSpaces) + L"  ";
@@ -221,6 +221,49 @@ void TransportationSystem::CalculatePaths()
 
 void TransportationSystem::CalculatePopulationDistribution()
 {
+	map<int, float> distanceToCenter;
+	for (int i = 0; i < stops.size(); i++)
+	{
+		float dist = Utils::CalculateDistance(stops[i].mapCoordinates, TransportationSystemAssumptions::MapCenter());
+		distanceToCenter[stops[i].id] = dist;
+	}
+	float maxDist = distanceToCenter[0];
+	for (int i = 1; i < distanceToCenter.size(); i++)
+	{
+		if (distanceToCenter[i] > maxDist)
+		{
+			maxDist = distanceToCenter[i];
+		}
+	}
+	map<int, float> populationproportions;
+	float populationproportionsum = 0.0;
+	map<int, float> officeproportions;
+	float officeproportionsum = 0.0;
+
+	for (int i = 0; i < stops.size(); i++)
+	{
+		float numStops = 1.0;
+		if (IntersectionMap.find(stops[i].id) != IntersectionMap.end())
+			numStops = intersections[IntersectionMap[stops[i].id]].stops.size();
+
+		float officeproportion = (1.0 - (distanceToCenter[i] / maxDist) * .9)/numStops;
+
+		officeproportionsum = officeproportionsum + officeproportion;
+		float populationproportion = (0.1 + (distanceToCenter[i] / maxDist) * .9)/numStops;
+		populationproportionsum = populationproportionsum + populationproportion;
+		populationproportions[stops[i].id] = populationproportion;
+		officeproportions[stops[i].id] = officeproportion;
+	}
+
+	float popRatio = TransportationSystemAssumptions::CommutingPopulation / populationproportionsum;
+	float officeRatio = TransportationSystemAssumptions::CommutingPopulation / officeproportionsum;
+	for (int i = 0; i < stops.size(); i++)
+	{
+		
+		stops[i].WorkSpaces = officeRatio * officeproportions[i];
+		stops[i].ResidentSpaces = popRatio * populationproportions[i];
+
+	}
 
 }
 

@@ -1,4 +1,6 @@
 #pragma once
+#include "TransportationStopCoordinates.h"
+
 class TransportationSystemAssumptions
 {
 public:
@@ -17,5 +19,7 @@ public:
 	static int addlTransferTime;
 
 	static int CommutingPopulation; //we assume one commuter per household for simplicity
+
+	static TransportationStopCoordinates MapCenter();
 };
 

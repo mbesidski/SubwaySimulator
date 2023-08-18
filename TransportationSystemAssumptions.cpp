@@ -15,3 +15,8 @@ int TransportationSystemAssumptions::transferTime = 120; //sec - transfer to ano
 int TransportationSystemAssumptions::addlTransferTime = 300; //sec - penalty for additinal pair of lines past two on intersection transfer
 
 int TransportationSystemAssumptions::CommutingPopulation = 2000000;
+
+TransportationStopCoordinates TransportationSystemAssumptions::MapCenter()
+{
+	return TransportationStopCoordinates(MapSize / 2, MapSize / 2);
+}

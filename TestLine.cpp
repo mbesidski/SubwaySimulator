@@ -246,7 +246,6 @@ vector<TransportationStopCoordinates> getCirclePoints(float stopLength, float di
 {
     const float fullRotation = 360.0;
     
-    TransportationStopCoordinates center(TransportationSystemAssumptions::MapSize / 2, TransportationSystemAssumptions::MapSize / 2);
     int currentcolor = 0;
     int counter = 0;
     int numoftimes = 180 / TransportationSystemAssumptions::RadialLineStep;
@@ -261,10 +260,10 @@ vector<TransportationStopCoordinates> getCirclePoints(float stopLength, float di
         float cosine = cos(radians);
         float sine = sin(radians);
 
-        int startX = center.x - round(length * cosine);
-        int startY = center.y - round(length * sine);
-        int endX = center.x + round(length * cosine);
-        int endY = center.y + round(length * sine);
+        int startX = TransportationSystemAssumptions::MapCenter().x - round(length * cosine);
+        int startY = TransportationSystemAssumptions::MapCenter().y - round(length * sine);
+        int endX = TransportationSystemAssumptions::MapCenter().x + round(length * cosine);
+        int endY = TransportationSystemAssumptions::MapCenter().y + round(length * sine);
 
         int deltax = endX - startX;
         int deltay = endY - startY;
