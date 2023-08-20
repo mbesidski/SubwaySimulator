@@ -31,7 +31,7 @@ public:
 
 	wstring GetStopLabel(int stop_idx);
 
-	wstring GetStopInfo(int stop_idx);
+	wstring GetStopInfo(int stop_idx, int originStop);
 
 	TransportationSystem();
 
@@ -41,5 +41,6 @@ public:
 	void CalculatePaths();
 	void CalculateSuportingInfo();
 	void CalculatePopulationDistribution();
+	void CalculateTravelMap();
 };
 

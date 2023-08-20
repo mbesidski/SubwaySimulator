@@ -171,7 +171,10 @@ void DrawStop(Graphics& graphics, Point center, Color color, wstring label)
     FontFamily  fontFamily(L"Times New Roman");
     Font        font(&fontFamily, 15, FontStyleRegular, UnitPixel);
     PointF      pointF(center.X - 1, center.Y + 1);
+ 
     SolidBrush  solidBrush(Color(255, 0, 0, 0));
+    if (originStop >= 0)
+        solidBrush.SetColor(Color(255, 255, 255, 255));
 
     graphics.DrawString(label.c_str(), -1, &font, pointF, &solidBrush);
 }
@@ -260,13 +263,13 @@ vector<TransportationStopCoordinates> getCirclePoints(float stopLength, float di
         float cosine = cos(radians);
         float sine = sin(radians);
 
-        int startX = TransportationSystemAssumptions::MapCenter().x - round(length * cosine);
-        int startY = TransportationSystemAssumptions::MapCenter().y - round(length * sine);
-        int endX = TransportationSystemAssumptions::MapCenter().x + round(length * cosine);
-        int endY = TransportationSystemAssumptions::MapCenter().y + round(length * sine);
+        float startX = TransportationSystemAssumptions::MapCenter().x - length * cosine;
+        float startY = TransportationSystemAssumptions::MapCenter().y - length * sine;
+        float endX = TransportationSystemAssumptions::MapCenter().x + length * cosine;
+        float endY = TransportationSystemAssumptions::MapCenter().y + length * sine;
 
-        int deltax = endX - startX;
-        int deltay = endY - startY;
+        float deltax = endX - startX;
+        float deltay = endY - startY;
 
         vector<TransportationStopCoordinates> innerbounds = (GetInnerBounds( TransportationStopCoordinates((startX), (startY)), TransportationStopCoordinates((endX), (endY)), stopLength, diameter));
 
@@ -311,7 +314,7 @@ void PaintPath(Graphics& graphics)
             DijkstraPath path = transportationSystem.PathBetweenStops[{originStop, destinationStop}];
             
             Pen pen(Color(255, 255, 255, 255));
-            pen.SetWidth(2);
+            pen.SetWidth(3);
 
             for (int i = 0; i < path.stops.size() - 1; i++)
             {
@@ -353,10 +356,11 @@ void GetCityPoints()
         float cosine = cos(radians);
         float sine = sin(radians);
 
-        float startX = center.x - round(length * cosine);
-        float startY = center.y - round(length * sine);
-        float endX = center.x + round(length * cosine);
-        float endY = center.y + round(length * sine);
+        float startX = center.x - length * cosine;
+        float startY = center.y - length * sine;
+        float endX = center.x + length * cosine;
+        float endY = center.y + length * sine;
+
 
         float deltax = endX - startX;
         float deltay = endY - startY;
@@ -641,7 +645,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         int stop_idx = transportationSystem.FindClosestTransportartionStop(TranslateToMap(pt), 0.15);
 
         if (stop_idx >= 0) //we clicked on stop
-            MessageBox(hWnd, transportationSystem.GetStopInfo(stop_idx).c_str(), L"Transportation Stop", 0);
+            MessageBox(hWnd, transportationSystem.GetStopInfo(stop_idx, originStop).c_str(), L"Transportation Stop", 0);
     }
     break;
     default:

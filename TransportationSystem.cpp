@@ -37,7 +37,7 @@ int TransportationSystem::AddLine(TransportationLine line)
 
 	return line.id;
 }
-wstring TransportationSystem::GetStopInfo(int stop_idx)
+wstring TransportationSystem::GetStopInfo(int stop_idx, int originStop)
 {
 	wstring label;
 
@@ -60,12 +60,25 @@ wstring TransportationSystem::GetStopInfo(int stop_idx)
 			lines += to_wstring(stops[intersections[IntersectionMap[stop_idx]].stops[i]].line_id);
 
 			spaces += L"Stop " + to_wstring(intersections[IntersectionMap[stop_idx]].stops[i]) + L"  ";
-			spaces += L"ResidentSpaces " + to_wstring(stops[stop_idx].ResidentSpaces) + L"  ";
-			spaces += L"WorkSpaces " + to_wstring(stops[stop_idx].WorkSpaces) + L"\n";
+			spaces += L"ResidentSpaces " + to_wstring(stops[intersections[IntersectionMap[stop_idx]].stops[i]].ResidentSpaces) + L"  ";
+			spaces += L"WorkSpaces " + to_wstring(stops[intersections[IntersectionMap[stop_idx]].stops[i]].WorkSpaces) + L"  ";
+			spaces += L"Coordinates " + to_wstring(stops[intersections[IntersectionMap[stop_idx]].stops[i]].mapCoordinates.x) + L", " + to_wstring(stops[intersections[IntersectionMap[stop_idx]].stops[i]].mapCoordinates.y) + L"  ";
+			if (originStop >= 0)
+			{
+				spaces += L"Distance from " + to_wstring(originStop) + L" to " +
+					to_wstring(intersections[IntersectionMap[stop_idx]].stops[i]) + L" = " +
+					to_wstring(PathBetweenStops[{originStop, intersections[IntersectionMap[stop_idx]].stops[i]}].distance) + L"  ";
+
+					spaces += L"Travelers from " + to_wstring(originStop) + L" to " +
+					to_wstring(intersections[IntersectionMap[stop_idx]].stops[i]) + L" = " +
+					to_wstring(PathBetweenStops[{originStop, intersections[IntersectionMap[stop_idx]].stops[i]}].travelers);
+			}
+			spaces += L"\n";
 		}
 		label += L"\n";
 		label += lines + L"\n";
 		label += spaces;
+
 	}
 	else
 	{
@@ -74,9 +87,20 @@ wstring TransportationSystem::GetStopInfo(int stop_idx)
 
 		label += L"ResidentSpaces " + to_wstring(stops[stop_idx].ResidentSpaces) + L"\n";
 		label += L"WorkSpaces " + to_wstring(stops[stop_idx].WorkSpaces) + L"\n";
-	}
+		
+		if (originStop >= 0)
+		{
+			label += L"Distance between " + to_wstring(originStop) + L" and ";
+			label += to_wstring(stop_idx) + L" = ";
+			label += to_wstring(PathBetweenStops[{originStop, stop_idx}].distance) + L"\n";
 
-	label += L"Map Coordinates " + to_wstring(stops[stop_idx].mapCoordinates.x) + L", " + to_wstring(stops[stop_idx].mapCoordinates.y) + L"\n";
+			label += L"Travelers between " + to_wstring(originStop) + L" and ";
+			label += to_wstring(stop_idx) + L" = ";
+			label += to_wstring(PathBetweenStops[{originStop, stop_idx}].travelers) + L"\n";
+		}
+
+		label += L"Map Coordinates " + to_wstring(stops[stop_idx].mapCoordinates.x) + L", " + to_wstring(stops[stop_idx].mapCoordinates.y) + L"\n";
+	}
 
 	return label;
 }
@@ -217,6 +241,70 @@ void TransportationSystem::CalculatePaths()
 		for (auto path : paths)
 			PathBetweenStops[{path.origin, path.destination}] = path;
 	}
+
+	//If the origin or destination stop is a part of an intersection, 
+	//we do not need to transfer even if we entered or arrived at a different stop at the same intersection
+	
+	
+	for (auto path : PathBetweenStops)
+	{
+		DijkstraPath dijkstraPath = path.second;
+
+		vector<int> origins;
+		//check if origin is an intersection
+		if (IntersectionMap.find(dijkstraPath.origin) != IntersectionMap.end())
+			origins = intersections[IntersectionMap[dijkstraPath.origin]].stops;
+		else
+			origins.push_back(dijkstraPath.origin);
+
+		vector<int> destinations;
+		//check if origin is an intersection
+		if (IntersectionMap.find(dijkstraPath.destination) != IntersectionMap.end())
+			destinations = intersections[IntersectionMap[dijkstraPath.destination]].stops;
+		else
+			destinations.push_back(dijkstraPath.destination);
+
+		//do not applyu this logic if origin and destination are a part of the same intersection
+		if (origins.size() != 1 && destinations.size() != 1 && IntersectionMap[dijkstraPath.origin] == IntersectionMap[dijkstraPath.destination])
+			continue;
+		
+		if (origins.size() != 1 || destinations.size() != 1) //intersections at the origin or destination
+		{
+			int min_time = PathBetweenStops[{origins[0], destinations[0]}].time;
+			int min_origin = origins[0];
+			int min_destination = destinations[0];
+
+			for (int origin_idx : origins)
+			{
+				for (int destination_idx : destinations)
+				{
+					if (min_origin == origin_idx && min_destination == destination_idx)
+						continue;
+
+					if (PathBetweenStops[{origin_idx, destination_idx}].time < min_time)
+					{
+						min_time = PathBetweenStops[{origin_idx, destination_idx}].time;
+						min_origin = origin_idx;
+						min_destination = destination_idx;
+					}
+				}
+			}
+
+			for (int origin_idx : origins)
+			{
+				for (int destination_idx : destinations)
+				{
+					if (min_origin == origin_idx && min_destination == destination_idx)
+						continue;
+
+					PathBetweenStops[{origin_idx, destination_idx}].time = min_time;
+					PathBetweenStops[{origin_idx, destination_idx}].stops = PathBetweenStops[{min_origin, min_destination}].stops;
+				}
+			}
+
+		}
+	}
+
 }
 
 void TransportationSystem::CalculatePopulationDistribution()
@@ -267,6 +355,52 @@ void TransportationSystem::CalculatePopulationDistribution()
 
 }
 
+void TransportationSystem::CalculateTravelMap()
+{
+	map<int, map<int, float>> officenums;
+	map<int, float> stopShares;
+	for (int i = 0; i < stops.size(); i++)
+	{
+		for (int j = 0; j < stops.size(); j++)
+		{
+			if (i == j) continue;
+			vector <int> howToReach= PathBetweenStops[{i, j}].stops;
+			float distance = 0.0;
+			int intersectionNum = 0;
+			for (int x = 0; x < howToReach.size() - 1; x++)
+			{
+
+				float dist = PathBetweenStops[{howToReach[x], howToReach[x + 1]}].distance;
+
+				if (dist == -1)
+				{
+					dist = Utils::CalculateDistance(stops[howToReach[x]].mapCoordinates, stops[howToReach[x + 1]].mapCoordinates);
+					PathBetweenStops[{howToReach[x], howToReach[x + 1]}].distance = dist;
+				}
+				distance = distance + dist;
+				if (stops[howToReach[x]].line_id != stops[howToReach[x + 1]].line_id)
+				{
+					intersectionNum++;
+				}
+
+			}
+			PathBetweenStops[{i, j}].distance = distance;
+			PathBetweenStops[{i, j}].intersections = intersectionNum;
+			officenums[i][j] = stops[j].WorkSpaces / log(distance) 
+				* max((1.0-intersectionNum / 10.0), 0.0); //penalty for using intersections
+			stopShares[i] += officenums[i][j];
+		}
+	}
+	for (int i = 0; i < stops.size(); i++)
+	{
+		for (int j = 0; j < stops.size(); j++)
+		{
+			PathBetweenStops[{i, j}].travelers = stops[i].ResidentSpaces * (officenums[i][j] / stopShares[i]);
+		}
+	}
+	int i = PathBetweenStops.size();
+}
+
 void TransportationSystem::CalculateSuportingInfo()
 {
 	CalculateStopDistances();
@@ -274,6 +408,7 @@ void TransportationSystem::CalculateSuportingInfo()
 	CalculateIntersections();
 	CalculatePaths();
 	CalculatePopulationDistribution();
+	CalculateTravelMap();
 }
 
 //proximity is in kilometers from mouse click point
