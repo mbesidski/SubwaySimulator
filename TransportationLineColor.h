@@ -12,8 +12,8 @@ class TransportationLineColor
 public:
 
     Color color;
-    string name;
+    wstring name;
 
-    TransportationLineColor(Color col, string nm);
+    TransportationLineColor(Color col, wstring nm);
 };
 

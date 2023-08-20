@@ -48,22 +48,22 @@ TransportationSystem transportationSystem;
 
 vector<TransportationLineColor> subwayLines =
 {
-    {Color(255, 255, 0, 0), "Bright Red" },
-    {Color(255, 255, 165, 0), "Bright Orange"},
-    {Color(255, 255, 255, 0), "Bright Yellow"},
-    {Color(255, 0, 255, 0), "Bright Green"},
-    {Color(255, 0, 255, 255), "Bright Blue"},
-    {Color(255, 255, 0, 255), "Bright Magenta"},
-    {Color(255, 0, 0, 0), "Black"},
-    {Color(255, 255, 128, 0), "Bright Orange-Red"},
-    {Color(255, 255, 255, 128), "Bright Yellow-Light"},
-    {Color(255, 128, 255, 128), "Bright Lime Green"},
-    {Color(255, 128, 128, 255), "Bright Periwinkle"},
-    {Color(255, 255, 128, 255), "Bright Orchid"},
-    {Color(255, 128, 255, 255), "Bright Turquoise"},
-    {Color(255, 255, 0, 128), "Bright Hot Pink"},
-    {Color(255, 128, 0, 255), "Bright Indigo"},
-    {Color(255, 0, 0, 255), "Bright Light Blue"}
+    {Color(255, 255, 0, 0), L"Bright Red" },
+    {Color(255, 255, 165, 0), L"Bright Orange"},
+    {Color(255, 255, 255, 0), L"Bright Yellow"},
+    {Color(255, 0, 255, 0), L"Bright Green"},
+    {Color(255, 0, 255, 255), L"Bright Blue"},
+    {Color(255, 255, 0, 255), L"Bright Magenta"},
+    {Color(255, 0, 0, 0), L"Black"},
+    {Color(255, 255, 128, 0), L"Bright Orange-Red"},
+    {Color(255, 255, 255, 128), L"Bright Yellow-Light"},
+    {Color(255, 128, 255, 128), L"Bright Lime Green"},
+    {Color(255, 128, 128, 255), L"Bright Periwinkle"},
+    {Color(255, 255, 128, 255), L"Bright Orchid"},
+    {Color(255, 128, 255, 255), L"Bright Turquoise"},
+    {Color(255, 255, 0, 128), L"Bright Hot Pink"},
+    {Color(255, 128, 0, 255), L"Bright Indigo"},
+    {Color(255, 0, 0, 255), L"Bright Light Blue"}
 };
 
 void GetMapSize(HWND hWnd)
@@ -298,7 +298,7 @@ vector<TransportationStopCoordinates> getCirclePoints(float stopLength, float di
 
 void AddLineToSystem(vector<TransportationStopCoordinates> stops, TransportationLineColor line_color, bool bCircular)
 {
-    int line_id = transportationSystem.AddLine(TransportationLine(line_color, true));
+    int line_id = transportationSystem.AddLine(TransportationLine(line_color, bCircular));
     for (TransportationStopCoordinates p : stops)
         transportationSystem.AddStop(TransportationStop(p, line_id));
 }
@@ -340,7 +340,6 @@ void GetCityPoints()
 
     TransportationStopCoordinates center(TransportationSystemAssumptions::MapSize / 2, TransportationSystemAssumptions::MapSize / 2);
 
-    int currentcolor = 0;
     int counter = 0;
     int numoftimes = 180 / TransportationSystemAssumptions::RadialLineStep;
     vector<TransportationStopCoordinates> allinnerbounds1;
@@ -405,18 +404,18 @@ void GetCityPoints()
         vector<TransportationStopCoordinates> outerlinepoints2 = GetStraightLinePoints(midbound2, TransportationStopCoordinates(endX, endY), TransportationSystemAssumptions::OuterCityStopLength);
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), outerlinepoints2.begin(), outerlinepoints2.end());
 
-        AddLineToSystem(CollectionofLinePoints, subwayLines[currentcolor], false);
+        AddLineToSystem(CollectionofLinePoints, subwayLines[counter], false);
 
         counter++;
     }
     
     vector<TransportationStopCoordinates> innercircle = getCirclePoints(TransportationSystemAssumptions::InnerCityStopLength, TransportationSystemAssumptions::InnerCityDiameter);
-    AddLineToSystem(innercircle, subwayLines[currentcolor], true);
+    AddLineToSystem(innercircle, subwayLines[counter], true);
 
-    currentcolor++;
+    counter++;
     int numberofrings = 1;
     vector<TransportationStopCoordinates> outercircle = getCirclePoints(TransportationSystemAssumptions::OuterCityStopLength / 2, TransportationSystemAssumptions::OuterCityDiameter / 2);
-    AddLineToSystem(outercircle, subwayLines[currentcolor], true);
+    AddLineToSystem(outercircle, subwayLines[counter], true);
 
     transportationSystem.CalculateSuportingInfo();
 
@@ -437,7 +436,7 @@ void PaintCity(HDC hdc)
     int currentcolor = 0;
     for (int i = 0; i < transportationSystem.lines.size(); i++)
     {
-        Pen pen(subwayLines[currentcolor].color);
+        Pen pen(transportationSystem.lines[i].color.color);
         pen.SetWidth(lineWidth);
         pen.SetEndCap(LineCapRound);
         pen.SetStartCap(LineCapRound);
@@ -646,6 +645,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         if (stop_idx >= 0) //we clicked on stop
             MessageBox(hWnd, transportationSystem.GetStopInfo(stop_idx, originStop).c_str(), L"Transportation Stop", 0);
+        else
+        {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hWnd, &ps);
+            COLORREF col = GetPixel(NULL, pt.X, pt.Y);
+            EndPaint(hWnd, &ps);
+
+            //MessageBox(hWnd, to_wstring(col).c_str(), L"Transportation Line Info", 0);
+            break;
+
+            for (TransportationLine line : transportationSystem.lines)
+            {
+                Color c(col);
+                if (line.color.color.GetValue() == c.GetValue())
+                {
+                    wstring msg = L"Line " + to_wstring(line.id) + L" " + line.color.name;
+                    MessageBox(hWnd, msg.c_str(), L"Transportation Line Info", 0);
+                    break;
+                }
+            }
+
+        }
     }
     break;
     default:

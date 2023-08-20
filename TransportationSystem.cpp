@@ -264,7 +264,7 @@ void TransportationSystem::CalculatePaths()
 		else
 			destinations.push_back(dijkstraPath.destination);
 
-		//do not applyu this logic if origin and destination are a part of the same intersection
+		//do not apply this logic if origin and destination are a part of the same intersection
 		if (origins.size() != 1 && destinations.size() != 1 && IntersectionMap[dijkstraPath.origin] == IntersectionMap[dijkstraPath.destination])
 			continue;
 		
