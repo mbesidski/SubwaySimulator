@@ -647,18 +647,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             MessageBox(hWnd, transportationSystem.GetStopInfo(stop_idx, originStop).c_str(), L"Transportation Stop", 0);
         else
         {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            COLORREF col = GetPixel(NULL, pt.X, pt.Y);
-            EndPaint(hWnd, &ps);
-
-            //MessageBox(hWnd, to_wstring(col).c_str(), L"Transportation Line Info", 0);
-            break;
-
+            HDC hdc = GetDC(hWnd);
+            COLORREF col = GetPixel(hdc, pt.X, pt.Y);
+            
             for (TransportationLine line : transportationSystem.lines)
             {
                 Color c(col);
-                if (line.color.color.GetValue() == c.GetValue())
+                if (line.color.color.ToCOLORREF() == col)
                 {
                     wstring msg = L"Line " + to_wstring(line.id) + L" " + line.color.name;
                     MessageBox(hWnd, msg.c_str(), L"Transportation Line Info", 0);
