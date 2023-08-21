@@ -115,12 +115,15 @@ wstring TransportationSystem::GetLineInfo(int line_idx, TransportationStopCoordi
 		TransportationStopCoordinates stop1_coord = stops[stop_idx1].mapCoordinates;
 		TransportationStopCoordinates stop2_coord = stops[stop_idx2].mapCoordinates;
 
+		float tolerance = 0.15;
 		bool bHorizontalRange = false;
-		if ((coords.x > stop1_coord.x - 6 && coords.x - 6 < stop2_coord.x) || (coords.x > stop2_coord.x - 6 && coords.x - 6 < stop1_coord.x))
+		if ((coords.x > stop1_coord.x - tolerance && coords.x - tolerance < stop2_coord.x) || 
+			(coords.x > stop2_coord.x - tolerance && coords.x - tolerance < stop1_coord.x))
 			bHorizontalRange = true;
 
 		bool bVerticalRange = false;
-		if ((coords.y > stop1_coord.y - 6  && coords.y - 6 < stop2_coord.y) || (coords.y > stop2_coord.y - 6  && coords.y - 6 < stop1_coord.y))
+		if ((coords.y > stop1_coord.y - tolerance && coords.y - tolerance < stop2_coord.y) || 
+			(coords.y > stop2_coord.y - tolerance && coords.y - tolerance < stop1_coord.y))
 			bVerticalRange = true;
 
 		if (bHorizontalRange && bVerticalRange) //found
@@ -134,7 +137,7 @@ wstring TransportationSystem::GetLineInfo(int line_idx, TransportationStopCoordi
 
 			int traffic2 = -1;
 			if (TrafficMap.find({ stop_idx2, stop_idx1 }) != TrafficMap.end())
-				traffic1 = TrafficMap[{stop_idx2, stop_idx1}];
+				traffic2 = TrafficMap[{stop_idx2, stop_idx1}];
 
 			msg += L"Between stops " + to_wstring(stop_idx2) + L" and " + to_wstring(stop_idx1);
 			msg += L" traffic is " + to_wstring(traffic2) + L"\n";
@@ -434,7 +437,7 @@ void TransportationSystem::CalculateTravelMap()
 	{
 		for (int j = 0; j < stops.size(); j++)
 		{
-			PathBetweenStops[{i, j}].travelers = stops[i].ResidentSpaces * (officenums[i][j] / stopShares[i]);
+			PathBetweenStops[{i, j}].travelers = round(stops[i].ResidentSpaces * (officenums[i][j] / stopShares[i]));
 		}
 	}
 	int i = PathBetweenStops.size();
@@ -442,7 +445,21 @@ void TransportationSystem::CalculateTravelMap()
 
 void TransportationSystem::CalculateTrafficData()
 {
-
+	for (int i = 0; i < stops.size(); i++)
+	{
+		for (int j = 0; j < stops.size(); j++)
+		{
+			if (i == j) continue;
+			vector <int> pathstops = PathBetweenStops[{stops[i].id, stops[j].id}].stops;
+			for (int x = 0; x < pathstops.size()-1; x++)
+			{
+				if (TrafficMap.find({ pathstops[x], pathstops[x+1] }) == TrafficMap.end())
+					TrafficMap[{pathstops[x], pathstops[x + 1]}] = PathBetweenStops[{stops[i].id, stops[j].id}].travelers;
+				else
+					TrafficMap[{pathstops[x], pathstops[x + 1]}] += PathBetweenStops[{stops[i].id, stops[j].id}].travelers;
+			}
+		}
+	}
 }
 
 void TransportationSystem::CalculateSuportingInfo()
