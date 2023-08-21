@@ -22,6 +22,7 @@ public:
 	map<pair<int, int>, int> TimeBetweenStops; //defines distance between stops pairs identified by indexes in terms of time
 	map<pair<int, int>, DijkstraPath> PathBetweenStops; //defines the path between stops pairs identified by indexes
 	map<int, int> IntersectionMap; //stop_idx to intersection_idx
+	map<pair<int, int>, int> TrafficMap; //maps pair of stops to rush hour traffic between them
 
 	int AddLine(TransportationLine);
 
@@ -33,6 +34,8 @@ public:
 
 	wstring GetStopInfo(int stop_idx, int originStop);
 
+	wstring GetLineInfo(int line_idx, TransportationStopCoordinates coords);
+	
 	TransportationSystem();
 
 	void CalculateStopDistances();
@@ -42,5 +45,6 @@ public:
 	void CalculateSuportingInfo();
 	void CalculatePopulationDistribution();
 	void CalculateTravelMap();
+	void CalculateTrafficData();
 };
 

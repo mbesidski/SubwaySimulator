@@ -105,6 +105,45 @@ wstring TransportationSystem::GetStopInfo(int stop_idx, int originStop)
 	return label;
 }
 
+wstring TransportationSystem::GetLineInfo(int line_idx, TransportationStopCoordinates coords)
+{
+	for (int i = 0; i < lines[line_idx].stops.size() - 1; i++)
+	{
+		int stop_idx1 = lines[line_idx].stops[i];
+		int stop_idx2 = lines[line_idx].stops[i + 1];
+
+		TransportationStopCoordinates stop1_coord = stops[stop_idx1].mapCoordinates;
+		TransportationStopCoordinates stop2_coord = stops[stop_idx2].mapCoordinates;
+
+		bool bHorizontalRange = false;
+		if ((coords.x > stop1_coord.x - 6 && coords.x - 6 < stop2_coord.x) || (coords.x > stop2_coord.x - 6 && coords.x - 6 < stop1_coord.x))
+			bHorizontalRange = true;
+
+		bool bVerticalRange = false;
+		if ((coords.y > stop1_coord.y - 6  && coords.y - 6 < stop2_coord.y) || (coords.y > stop2_coord.y - 6  && coords.y - 6 < stop1_coord.y))
+			bVerticalRange = true;
+
+		if (bHorizontalRange && bVerticalRange) //found
+		{
+			int traffic1 = -1;
+			if (TrafficMap.find({ stop_idx1,  stop_idx2 }) != TrafficMap.end())
+				traffic1 = TrafficMap[{stop_idx1, stop_idx2}];
+
+			wstring msg = L"Between stops " + to_wstring(stop_idx1) + L" and " + to_wstring(stop_idx2);
+			msg += L" traffic is " + to_wstring(traffic1) + L"\n";
+
+			int traffic2 = -1;
+			if (TrafficMap.find({ stop_idx2, stop_idx1 }) != TrafficMap.end())
+				traffic1 = TrafficMap[{stop_idx2, stop_idx1}];
+
+			msg += L"Between stops " + to_wstring(stop_idx2) + L" and " + to_wstring(stop_idx1);
+			msg += L" traffic is " + to_wstring(traffic2) + L"\n";
+			return msg;
+		}
+	}
+	return L"";
+}
+
 wstring TransportationSystem::GetStopLabel(int stop_idx)
 {
 	wstring label;
@@ -401,6 +440,11 @@ void TransportationSystem::CalculateTravelMap()
 	int i = PathBetweenStops.size();
 }
 
+void TransportationSystem::CalculateTrafficData()
+{
+
+}
+
 void TransportationSystem::CalculateSuportingInfo()
 {
 	CalculateStopDistances();
@@ -409,6 +453,7 @@ void TransportationSystem::CalculateSuportingInfo()
 	CalculatePaths();
 	CalculatePopulationDistribution();
 	CalculateTravelMap();
+	CalculateTrafficData();
 }
 
 //proximity is in kilometers from mouse click point

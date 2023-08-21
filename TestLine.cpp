@@ -655,7 +655,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 Color c(col);
                 if (line.color.color.ToCOLORREF() == col)
                 {
-                    wstring msg = L"Line " + to_wstring(line.id) + L" " + line.color.name;
+                    wstring msg = L"Line " + to_wstring(line.id) + L" " + line.color.name + L"\n";
+                    msg += transportationSystem.GetLineInfo(line.id, TranslateToMap(pt));
                     MessageBox(hWnd, msg.c_str(), L"Transportation Line Info", 0);
                     break;
                 }
