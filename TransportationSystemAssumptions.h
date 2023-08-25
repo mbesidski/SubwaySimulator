@@ -18,6 +18,8 @@ public:
 	static int transferTime;
 	static int addlTransferTime;
 
+	static bool isTrainLine;
+
 	static int CommutingPopulation; //we assume one commuter per household for simplicity
 
 	static TransportationStopCoordinates MapCenter();

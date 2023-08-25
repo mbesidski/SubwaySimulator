@@ -14,6 +14,8 @@ float TransportationSystemAssumptions::InnerCityStopLength = OuterCityStopLength
 int TransportationSystemAssumptions::transferTime = 120; //sec - transfer to another line on intersection
 int TransportationSystemAssumptions::addlTransferTime = 300; //sec - penalty for additinal pair of lines past two on intersection transfer
 
+bool TransportationSystemAssumptions::isTrainLine = true;
+
 int TransportationSystemAssumptions::CommutingPopulation = 2000000;
 
 TransportationStopCoordinates TransportationSystemAssumptions::MapCenter()

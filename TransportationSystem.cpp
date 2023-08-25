@@ -468,6 +468,44 @@ void TransportationSystem::CalculateTrafficData()
 	}
 }
 
+void TransportationSystem::CalculateLineData()
+{
+
+	for (int i = 0; i < lines.size(); i++)
+	{
+		float distance = 0.0;
+		int max = 0.0;
+		for (int j = 0; j < lines[i].stops.size()-1; j++)
+		{
+			TransportationStop curr_stop = stops[lines[i].stops[j]];
+			TransportationStop next_stop = stops[lines[i].stops[j+1]];
+			max = j + 1;
+			float distancia = PathBetweenStops[{curr_stop.id, next_stop.id}].distance;
+			distance += distancia;
+
+			
+		}
+		
+		TransportationStop first_stop = stops[lines[i].stops[0]];
+		TransportationStop last_stop = stops[lines[i].stops[max]];
+		if (lines[i].bCircular) 
+			distance += PathBetweenStops[{first_stop.id, last_stop.id}].distance;
+		
+		lines[i].length = distance;
+		if (TransportationSystemAssumptions::isTrainLine)
+		{
+			lines[i].fullLength = distance;
+		}
+		else
+		{
+			float t = TransportationSystemAssumptions::maxSpeed / TransportationSystemAssumptions::acceleration;
+			float d = (TransportationSystemAssumptions::acceleration * pow(t, 2)) / 2 * 1.5;
+			distance += d * 2 * lines[i].stops.size()/1000.0;
+			lines[i].fullLength = distance;
+		}
+	}
+}
+
 void TransportationSystem::CalculateSuportingInfo()
 {
 	CalculateStopDistances();
@@ -477,7 +515,11 @@ void TransportationSystem::CalculateSuportingInfo()
 	CalculatePopulationDistribution();
 	CalculateTravelMap();
 	CalculateTrafficData();
+
+	CalculateLineData();
 }
+
+
 
 //proximity is in kilometers from mouse click point
 int TransportationSystem::FindClosestTransportartionStop(TransportationStopCoordinates coord, float proximity)

@@ -46,5 +46,6 @@ public:
 	void CalculatePopulationDistribution();
 	void CalculateTravelMap();
 	void CalculateTrafficData();
+	void CalculateLineData();
 };
 
