@@ -13,6 +13,12 @@ public:
 	bool bCircular;
 	TransportationLineColor color;
 
+	float length;
+	float fullLength;
+
+	int numTunnels;
+	int numVehicles;
+
 	vector<int> stops; //indexes of Transportation stops in TransportationSystem.stops belogning to this line
 
 	TransportationLine(TransportationLineColor _color, bool bCircular = false);

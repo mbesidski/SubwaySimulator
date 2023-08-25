@@ -5,6 +5,11 @@ TransportationLine::TransportationLine(TransportationLineColor _color, bool _bCi
 	id = -1;
 	bCircular = _bCircular;
 
+	numTunnels = -1;
+	length = -1;
+	fullLength = -1;
+	numVehicles = -1;
+
 	stops.clear();
 }
 

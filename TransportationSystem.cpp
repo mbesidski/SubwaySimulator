@@ -107,6 +107,12 @@ wstring TransportationSystem::GetStopInfo(int stop_idx, int originStop)
 
 wstring TransportationSystem::GetLineInfo(int line_idx, TransportationStopCoordinates coords)
 {
+	wstring msg = L"Line Length = " + to_wstring(lines[line_idx].length) + L"\n";
+	msg += L"Adjusted Line Length = " + to_wstring(lines[line_idx].fullLength) + L"\n";
+	msg += L"Number Of Tunnels = " + to_wstring(lines[line_idx].numTunnels) + L"\n";
+	msg += L"Number Of Vehicles = " + to_wstring(lines[line_idx].numVehicles) + L"\n";
+
+
 	for (int i = 0; i < lines[line_idx].stops.size() - 1; i++)
 	{
 		int stop_idx1 = lines[line_idx].stops[i];
@@ -132,7 +138,7 @@ wstring TransportationSystem::GetLineInfo(int line_idx, TransportationStopCoordi
 			if (TrafficMap.find({ stop_idx1,  stop_idx2 }) != TrafficMap.end())
 				traffic1 = TrafficMap[{stop_idx1, stop_idx2}];
 
-			wstring msg = L"Between stops " + to_wstring(stop_idx1) + L" and " + to_wstring(stop_idx2);
+			msg += L"Between stops " + to_wstring(stop_idx1) + L" and " + to_wstring(stop_idx2);
 			msg += L" traffic is " + to_wstring(traffic1) + L"\n";
 
 			int traffic2 = -1;
