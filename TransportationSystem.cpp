@@ -7,6 +7,8 @@ TransportationSystem::TransportationSystem()
 {
 	stops.clear();
 	lines.clear();
+	adjustedStopTime = -1;
+	tunnelCapacity = -1;
 }
 
 int TransportationSystem::AddStop(TransportationStop stop)
@@ -111,17 +113,23 @@ wstring TransportationSystem::GetLineInfo(int line_idx, TransportationStopCoordi
 	msg += L"Adjusted Line Length = " + to_wstring(lines[line_idx].fullLength) + L"\n";
 	msg += L"Number Of Tunnels = " + to_wstring(lines[line_idx].numTunnels) + L"\n";
 	msg += L"Number Of Vehicles = " + to_wstring(lines[line_idx].numVehicles) + L"\n";
+	msg += L"Number Of Vehicles per Tunnel = " + to_wstring(lines[line_idx].vehiclesPerTunnel) + L"\n";
 
+	float tolerance = 0.15;
 
-	for (int i = 0; i < lines[line_idx].stops.size() - 1; i++)
+	vector<int> line_stops = lines[line_idx].stops;
+	if (lines[line_idx].bCircular)
+		line_stops.push_back(line_stops[0]);
+
+	for (int i = 0; i < line_stops.size() - 1; i++)
 	{
-		int stop_idx1 = lines[line_idx].stops[i];
-		int stop_idx2 = lines[line_idx].stops[i + 1];
+		int stop_idx1 = line_stops[i];
+		int stop_idx2 = line_stops[i + 1];
 
 		TransportationStopCoordinates stop1_coord = stops[stop_idx1].mapCoordinates;
 		TransportationStopCoordinates stop2_coord = stops[stop_idx2].mapCoordinates;
 
-		float tolerance = 0.15;
+		
 		bool bHorizontalRange = false;
 		if ((coords.x > stop1_coord.x - tolerance && coords.x - tolerance < stop2_coord.x) || 
 			(coords.x > stop2_coord.x - tolerance && coords.x - tolerance < stop1_coord.x))
@@ -200,13 +208,13 @@ void TransportationSystem::CalculateStopDistances()
 
 void TransportationSystem::CalculateStopTimes()
 {
-	float Tm = TransportationSystemAssumptions::maxSpeed / TransportationSystemAssumptions::acceleration;
-	float maxAccelerationDistance = (TransportationSystemAssumptions::acceleration * pow(Tm, 2)) / 2;
+	float Tm = TransportationSystemAssumptions::maxSpeed / TransportationSystemAssumptions::GetAcceleration();
+	float maxAccelerationDistance = (TransportationSystemAssumptions::GetAcceleration() * pow(Tm, 2)) / 2;
 
 	for (auto d : DistanceBetweenStops)
 	{
 		float distance = d.second;
-		float time = Utils::CalculateTime(TransportationSystemAssumptions::acceleration, TransportationSystemAssumptions::maxSpeed, distance * 1000, maxAccelerationDistance);
+		float time = Utils::CalculateTime(TransportationSystemAssumptions::GetAcceleration(), TransportationSystemAssumptions::maxSpeed, distance * 1000, maxAccelerationDistance);
 		TimeBetweenStops[d.first] = round(time);
 	}
 }
@@ -264,7 +272,7 @@ void TransportationSystem::CalculatePaths()
 	adjacency_matrix.resize(stops.size(), vector<int>(stops.size(), 0));
 
 	for (auto iter = TimeBetweenStops.begin(); iter != TimeBetweenStops.end(); iter++)
-		adjacency_matrix[iter->first.first][iter->first.second] = TimeBetweenStops[{iter->first.first, iter->first.second}];
+		adjacency_matrix[iter->first.first][iter->first.second] = TimeBetweenStops[{iter->first.first, iter->first.second}] + adjustedStopTime;
 
 	for (int i = 0; i < intersections.size(); i++)
 	{
@@ -432,9 +440,13 @@ void TransportationSystem::CalculateTravelMap()
 				}
 
 			}
+
+			if (i == 5 && j == 6)
+				cout << "Hello";
+			
 			PathBetweenStops[{i, j}].distance = distance;
 			PathBetweenStops[{i, j}].intersections = intersectionNum;
-			officenums[i][j] = stops[j].WorkSpaces / log(distance) 
+			officenums[i][j] = stops[j].WorkSpaces / distance 
 				* max((1.0-intersectionNum / 10.0), 0.0); //penalty for using intersections
 			stopShares[i] += officenums[i][j];
 		}
@@ -498,14 +510,92 @@ void TransportationSystem::CalculateLineData()
 		}
 		else
 		{
-			float t = TransportationSystemAssumptions::maxSpeed / TransportationSystemAssumptions::acceleration;
-			float d = (TransportationSystemAssumptions::acceleration * pow(t, 2)) / 2 * 1.5;
+			float t = TransportationSystemAssumptions::maxSpeed / TransportationSystemAssumptions::GetAcceleration();
+			float d = (TransportationSystemAssumptions::GetAcceleration() * pow(t, 2)) / 2 * 1.5;
 			distance += d * 2 * lines[i].stops.size()/1000.0;
 			lines[i].fullLength = distance;
 		}
 	}
 }
+void TransportationSystem::CalculateTunnelInfo()
+{
+	if (TransportationSystemAssumptions::isTrainLine)
+	{
+		adjustedStopTime = TransportationSystemAssumptions::stoptime;
+	}
+	else //if it's a car tunnel, the cars always travel at full speed in the main tunnel, so they need to decelerate and accelerate in off ramps, which needs to be added to stop time
+	{
+		float approachTime = (TransportationSystemAssumptions::maxSpeed / TransportationSystemAssumptions::GetAcceleration())*1.5;
+		adjustedStopTime = round(TransportationSystemAssumptions::stoptime + approachTime * 2);
+	}
 
+	tunnelCapacity = round((3600.0 / TransportationSystemAssumptions::GetDistanceBetweenVehicles()) 
+		* TransportationSystemAssumptions::GetVehicleCapacity()); //3600 because thats the number of seconds in an hour
+
+	//this piece of the function is calculating number of vehicles needed to cover one tunnel for each line\
+
+	if (TransportationSystemAssumptions::isTrainLine)
+	{
+		
+		for (int i = 0; i < lines.size(); i++)
+		{
+			int lineTime = 0; 
+			int last_idx = 0;
+			int first_idx = stops[lines[i].stops[0]].id;
+			for (int j = 0; j < lines[i].stops.size() -1; j++)
+			{
+				int curr_idx = stops[lines[i].stops[j]].id;
+				int next_idx = stops[lines[i].stops[j+1]].id;
+				last_idx = next_idx;
+				lineTime += PathBetweenStops[{first_idx, last_idx}].time;
+			}
+			if (lines[i].bCircular)
+			{
+				lineTime += PathBetweenStops[{first_idx, last_idx}].time;
+			}
+			lines[i].vehiclesPerTunnel = lineTime / TransportationSystemAssumptions::GetDistanceBetweenVehicles();
+		}
+		TransportationSystemAssumptions::GetDistanceBetweenVehicles();
+	}
+	else
+	{
+		float stationCapacity = TransportationSystemAssumptions::stoptime / TransportationSystemAssumptions::distanceBetweenCars;
+		for (int i = 0; i < lines.size(); i++)
+		{
+			float dist = TransportationSystemAssumptions::GetDistanceBetweenVehicles() * TransportationSystemAssumptions::maxSpeed;
+			int capacity = round((lines[i].length * 1000) / dist);
+			lines[i].vehiclesPerTunnel = capacity;
+			lines[i].vehiclesPerTunnel += stationCapacity*lines[i].stops.size();
+		}
+		//stoptime/how fast they come in = max amount of vehicles per station
+	}
+}
+void TransportationSystem::CalculateTunnelNum()
+{
+	//for each line, find maximum throughput
+	
+
+	for (int i = 0; i < lines.size(); i++)
+	{
+		int maxTraffic = 0;
+		for (int j = 0; j < lines[i].stops.size() - 1; j++)
+		{
+			int curr_idx1 = stops[lines[i].stops[j]].id;
+			int curr_idx2 = stops[lines[i].stops[j+1]].id;
+			if (TrafficMap[{curr_idx1, curr_idx2}] > maxTraffic)
+			{
+				maxTraffic = TrafficMap[{curr_idx1, curr_idx2}];
+			}
+			if (TrafficMap[{curr_idx2, curr_idx1}] > maxTraffic)
+			{
+				maxTraffic = TrafficMap[{curr_idx2, curr_idx1}];
+			}
+		}
+		double maxLoad = (maxTraffic / TransportationSystemAssumptions::rushHourLength);
+		lines[i].numTunnels = ceil(maxLoad/(double)tunnelCapacity);
+	}
+	
+}
 void TransportationSystem::CalculateSuportingInfo()
 {
 	CalculateStopDistances();
@@ -515,8 +605,9 @@ void TransportationSystem::CalculateSuportingInfo()
 	CalculatePopulationDistribution();
 	CalculateTravelMap();
 	CalculateTrafficData();
-
 	CalculateLineData();
+	CalculateTunnelInfo();
+	CalculateTunnelNum();
 }
 
 

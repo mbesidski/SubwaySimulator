@@ -15,9 +15,10 @@ public:
 
 	float length;
 	float fullLength;
+	int vehiclesPerTunnel; //vehicles per tunnel (or lane)
 
-	int numTunnels;
-	int numVehicles;
+	int numTunnels; //how many tunnels one way tunnels (lanes if were talking about cars) will be needed
+	int numVehicles; //overall total number of vehicles;
 
 	vector<int> stops; //indexes of Transportation stops in TransportationSystem.stops belogning to this line
 

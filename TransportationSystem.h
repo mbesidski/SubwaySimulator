@@ -24,6 +24,11 @@ public:
 	map<int, int> IntersectionMap; //stop_idx to intersection_idx
 	map<pair<int, int>, int> TrafficMap; //maps pair of stops to rush hour traffic between them
 
+	int adjustedStopTime; //the stop time depending on whether it is a train system or underground highway system
+
+	int tunnelCapacity; //how many people can move through this tunnel per direction per hour
+
+
 	int AddLine(TransportationLine);
 
 	int AddStop(TransportationStop);
@@ -47,5 +52,8 @@ public:
 	void CalculateTravelMap();
 	void CalculateTrafficData();
 	void CalculateLineData();
+	void CalculateTunnelInfo();
+	void CalculateTunnelNum();
+
 };
 

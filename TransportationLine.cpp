@@ -9,7 +9,7 @@ TransportationLine::TransportationLine(TransportationLineColor _color, bool _bCi
 	length = -1;
 	fullLength = -1;
 	numVehicles = -1;
-
+	vehiclesPerTunnel = -1;
 	stops.clear();
 }
 

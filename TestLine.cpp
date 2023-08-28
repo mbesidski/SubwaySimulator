@@ -392,13 +392,13 @@ void GetCityPoints()
         vector<TransportationStopCoordinates> outerlinepoints1 = GetStraightLinePoints(TransportationStopCoordinates(startX, startY), midbound1, TransportationSystemAssumptions::OuterCityStopLength);
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), outerlinepoints1.begin(), outerlinepoints1.end());
 
-        vector<TransportationStopCoordinates> midlinepoints1 = GetStraightLinePoints(midbound1, innerbound1, TransportationSystemAssumptions::OuterCityStopLength / 2);
+        vector<TransportationStopCoordinates> midlinepoints1 = GetStraightLinePoints(midbound1, innerbound1, TransportationSystemAssumptions::MiddleCityStopLength);
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), midlinepoints1.begin(), midlinepoints1.end());
 
         vector<TransportationStopCoordinates> innerlinepoints = GetStraightLinePoints(innerbound1, innerbound2, TransportationSystemAssumptions::InnerCityStopLength);
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), innerlinepoints.begin(), innerlinepoints.end());
 
-        vector<TransportationStopCoordinates> midlinepoints2 = GetStraightLinePoints(innerbound2, midbound2, TransportationSystemAssumptions::OuterCityStopLength / 2);
+        vector<TransportationStopCoordinates> midlinepoints2 = GetStraightLinePoints(innerbound2, midbound2, TransportationSystemAssumptions::MiddleCityStopLength);
         CollectionofLinePoints.insert(CollectionofLinePoints.end(), midlinepoints2.begin(), midlinepoints2.end());
 
         vector<TransportationStopCoordinates> outerlinepoints2 = GetStraightLinePoints(midbound2, TransportationStopCoordinates(endX, endY), TransportationSystemAssumptions::OuterCityStopLength);
@@ -414,7 +414,7 @@ void GetCityPoints()
 
     counter++;
     int numberofrings = 1;
-    vector<TransportationStopCoordinates> outercircle = getCirclePoints(TransportationSystemAssumptions::OuterCityStopLength / 2, TransportationSystemAssumptions::OuterCityDiameter / 2);
+    vector<TransportationStopCoordinates> outercircle = getCirclePoints(TransportationSystemAssumptions::MiddleCityStopLength, TransportationSystemAssumptions::MiddleCityDiameter);
     AddLineToSystem(outercircle, subwayLines[counter], true);
 
     transportationSystem.CalculateSuportingInfo();
