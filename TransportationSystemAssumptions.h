@@ -27,6 +27,7 @@ public:
 	static int rushHourLength; //hours
 
 	static bool isTrainLine; //train if true, car if not
+	static bool isHeatMap;
 
 	static int CommutingPopulation; //we assume one commuter per household for simplicity
 	

@@ -57,6 +57,9 @@
     <ClInclude Include="DijkstraPath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TransportationLineSegment.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestLine.cpp">
@@ -87,6 +90,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DijkstraPath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TransportationLineSegment.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

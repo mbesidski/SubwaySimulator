@@ -2,7 +2,9 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include "TransportationLineColor.h"
+#include "TransportationLineSegment.h"
 
 using namespace std;
 
@@ -14,6 +16,7 @@ public:
 	TransportationLineColor color;
 
 	float length;
+	
 	float fullLength;
 	int vehiclesPerTunnel; //vehicles per tunnel (or lane)
 
@@ -25,5 +28,8 @@ public:
 	TransportationLine(TransportationLineColor _color, bool bCircular = false);
 
 	void AddStop(int stopIndex);
+
+	map<pair<int, int>, TransportationLineSegment> segments;
+
 };
 

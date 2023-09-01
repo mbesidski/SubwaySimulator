@@ -426,11 +426,23 @@ void PaintCity(HDC hdc)
 
     Graphics graphics(hdc);
 
-    
+
     if (!bFullRepaint)
     {
         PaintPath(graphics);
         return;
+    }
+
+    int minTraffic = transportationSystem.TrafficMap[{0, 1}];
+    int maxTraffic = transportationSystem.TrafficMap[{0, 1}];
+
+    for (auto segment : transportationSystem.TrafficMap)
+    {
+        if (segment.second < 0)
+            continue;
+
+        maxTraffic = max(maxTraffic, segment.second);
+        minTraffic = min(minTraffic, segment.second);
     }
     
     int currentcolor = 0;
@@ -448,7 +460,17 @@ void PaintCity(HDC hdc)
 
             Point start = TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates);
             Point end = TranslateToScreen(transportationSystem.stops[next_idx].mapCoordinates);
-
+            if (TransportationSystemAssumptions::isHeatMap)
+            {
+                int x;
+                if (transportationSystem.TrafficMap[{stop_idx, next_idx}] > transportationSystem.TrafficMap[{next_idx, stop_idx}])
+                {
+                    x = 50 + 205 * ((transportationSystem.TrafficMap[{stop_idx, next_idx}] - minTraffic) / (float)(maxTraffic - minTraffic));
+                }
+                else x = 50 + 205 * ((transportationSystem.TrafficMap[{next_idx, stop_idx}] - minTraffic) / (float)(maxTraffic - minTraffic));
+                pen.SetColor(Color(255, x, 128, 128));
+            }
+           
             graphics.DrawLine(&pen, start.X, start.Y, end.X, end.Y);
            
 
@@ -458,6 +480,7 @@ void PaintCity(HDC hdc)
                 int last_idx = transportationSystem.lines[i].stops[transportationSystem.lines[i].stops.size()-1];
                 Point first = TranslateToScreen(transportationSystem.stops[first_idx].mapCoordinates);
                 Point last = TranslateToScreen(transportationSystem.stops[last_idx].mapCoordinates);
+
                 graphics.DrawLine(&pen, first.X, first.Y, last.X, last.Y);
             }
             
