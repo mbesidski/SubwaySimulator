@@ -114,6 +114,8 @@ wstring TransportationSystem::GetLineInfo(int line_idx, TransportationStopCoordi
 	msg += L"Number Of Tunnels = " + to_wstring(lines[line_idx].numTunnels) + L"\n";
 	msg += L"Number Of Vehicles = " + to_wstring(lines[line_idx].numVehicles) + L"\n";
 	msg += L"Number Of Vehicles per Tunnel = " + to_wstring(lines[line_idx].vehiclesPerTunnel) + L"\n";
+	msg += L"Total Tunnel Length = " + to_wstring(lines[line_idx].GetTotalTunnelLength()) + L"\n";
+	msg += L"Number Of Vehicles per Tunnel = " + to_wstring(lines[line_idx].GetTotalVehicles()) + L"\n";
 
 	float tolerance = 0.15;
 
@@ -155,6 +157,18 @@ wstring TransportationSystem::GetLineInfo(int line_idx, TransportationStopCoordi
 
 			msg += L"Between stops " + to_wstring(stop_idx2) + L" and " + to_wstring(stop_idx1);
 			msg += L" traffic is " + to_wstring(traffic2) + L"\n";
+
+			if (!TransportationSystemAssumptions::isTrainLine)
+			{
+				TransportationLineSegment segment = lines[line_idx].segments[{stop_idx1, stop_idx2}];
+				msg += L"Between stops " + to_wstring(stop_idx1) + L" and " + to_wstring(stop_idx2) + L"\n";
+				msg += L" Tunnels = " + to_wstring(segment.num_tunnels) + L"\n";
+				msg += L" Approaches = " + to_wstring(segment.num_approach_tunnels) + L"\n";
+				msg += L" Line Vehicles = " + to_wstring(segment.line_vehicles) + L"\n";
+				msg += L" Additional Vehicles = " + to_wstring(segment.addl_vehicles) + L"\n";
+				msg += L" Lenght = " + to_wstring(segment.length) + L"\n";
+				msg += L" Total Length = " + to_wstring(segment.total_length) + L"\n";
+			}
 			return msg;
 		}
 	}

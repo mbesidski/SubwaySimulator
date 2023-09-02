@@ -25,11 +25,14 @@ public:
 
 	vector<int> stops; //indexes of Transportation stops in TransportationSystem.stops belogning to this line
 
+	map<pair<int, int>, TransportationLineSegment> segments; //for van lines, number of tunnels is calculated per segment and so is the number of vehicles
+
 	TransportationLine(TransportationLineColor _color, bool bCircular = false);
 
 	void AddStop(int stopIndex);
 
-	map<pair<int, int>, TransportationLineSegment> segments;
+	float GetTotalTunnelLength();
 
+	int GetTotalVehicles();
 };
 

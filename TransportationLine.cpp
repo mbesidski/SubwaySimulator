@@ -17,3 +17,13 @@ void TransportationLine::AddStop(int stopIndex)
 {
 	stops.push_back(stopIndex);
 }
+
+float TransportationLine::GetTotalTunnelLength()
+{
+	return 0;
+}
+
+int TransportationLine::GetTotalVehicles()
+{
+	return 0;
+}
