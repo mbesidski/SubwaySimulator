@@ -115,7 +115,7 @@ wstring TransportationSystem::GetLineInfo(int line_idx, TransportationStopCoordi
 	msg += L"Number Of Vehicles = " + to_wstring(lines[line_idx].numVehicles) + L"\n";
 	msg += L"Number Of Vehicles per Tunnel = " + to_wstring(lines[line_idx].vehiclesPerTunnel) + L"\n";
 	msg += L"Total Tunnel Length = " + to_wstring(lines[line_idx].GetTotalTunnelLength()) + L"\n";
-	msg += L"Number Of Vehicles per Tunnel = " + to_wstring(lines[line_idx].GetTotalVehicles()) + L"\n";
+	msg += L"Total Number Of Vehicles = " + to_wstring(lines[line_idx].GetTotalVehicles()) + L"\n";
 
 	float tolerance = 0.15;
 
@@ -166,7 +166,7 @@ wstring TransportationSystem::GetLineInfo(int line_idx, TransportationStopCoordi
 				msg += L" Approaches = " + to_wstring(segment.num_approach_tunnels) + L"\n";
 				msg += L" Line Vehicles = " + to_wstring(segment.line_vehicles) + L"\n";
 				msg += L" Additional Vehicles = " + to_wstring(segment.addl_vehicles) + L"\n";
-				msg += L" Lenght = " + to_wstring(segment.length) + L"\n";
+				msg += L" Length = " + to_wstring(segment.length) + L"\n";
 				msg += L" Total Length = " + to_wstring(segment.total_length) + L"\n";
 			}
 			return msg;
@@ -561,11 +561,11 @@ void TransportationSystem::CalculateTunnelInfo()
 				int curr_idx = stops[lines[i].stops[j]].id;
 				int next_idx = stops[lines[i].stops[j+1]].id;
 				last_idx = next_idx;
-				lineTime += PathBetweenStops[{first_idx, last_idx}].time;
+				lineTime += PathBetweenStops[{curr_idx, last_idx}].time;
 			}
 			if (lines[i].bCircular)
 			{
-				lineTime += PathBetweenStops[{first_idx, last_idx}].time;
+				lineTime += PathBetweenStops[{last_idx, first_idx}].time;
 			}
 			lines[i].vehiclesPerTunnel = lineTime / TransportationSystemAssumptions::GetDistanceBetweenVehicles();
 		}
@@ -609,6 +609,7 @@ void TransportationSystem::CalculateTunnelNum()
 			}
 			double maxLoad = maxTraffic / TransportationSystemAssumptions::rushHourLength;
 			lines[i].numTunnels = ceil(maxLoad / (double)tunnelCapacity);
+			lines[i].numVehicles = (double)lines[i].vehiclesPerTunnel * maxLoad / (double)tunnelCapacity;
 		}
 	}
 	else
@@ -625,11 +626,46 @@ void TransportationSystem::CalculateTunnelNum()
 				if (TrafficMap[{curr_idx, next_idx}] < TrafficMap[{next_idx, curr_idx}])
 					maxTraffic = TrafficMap[{next_idx, curr_idx}];
 				double maxLoad = maxTraffic / TransportationSystemAssumptions::rushHourLength;
-				lines[i].segments[{curr_idx, next_idx}].line_vehicles = maxTraffic;
+				float distance = TransportationSystemAssumptions::GetDistanceBetweenVehicles() * TransportationSystemAssumptions::maxSpeed;
 				lines[i].segments[{curr_idx, next_idx}].num_tunnels = ceil(maxLoad / (double)tunnelCapacity);
+				lines[i].segments[{curr_idx, next_idx}].line_vehicles = lines[i].segments[{curr_idx, next_idx}].length / (distance / 1000) * (maxLoad / (double)tunnelCapacity);
 				lines[i].segments[{curr_idx, next_idx}].num_approach_tunnels = ceil(maxLoad / (double)tunnelCapacity) * 2;
-				float d = (TransportationSystemAssumptions::GetAcceleration() * pow(TransportationSystemAssumptions::maxSpeed / TransportationSystemAssumptions::GetAcceleration(), 2)) / 2 * 1.5;
+				float d = (TransportationSystemAssumptions::GetAcceleration() * pow(TransportationSystemAssumptions::maxSpeed / TransportationSystemAssumptions::GetAcceleration(), 2)) / 2000 * 1.5;
 				lines[i].segments[{curr_idx, next_idx}].total_length = (ceil(maxLoad / (double)tunnelCapacity) * 2 * d) + Utils::CalculateDistance(stops[curr_idx].mapCoordinates, stops[next_idx].mapCoordinates);
+				float stationCapacity = TransportationSystemAssumptions::stoptime / TransportationSystemAssumptions::distanceBetweenCars;
+				
+				if (i == 0)
+					lines[i].segments[{curr_idx, next_idx}].addl_vehicles = stationCapacity * lines[i].segments[{curr_idx, next_idx}].num_tunnels;
+				if (i > 0 && i < lines[i].stops.size() - 2)
+				{
+					int maxTunnels = lines[i].segments[{curr_idx, next_idx}].num_tunnels;
+					if (maxTunnels < lines[i].segments[{next_idx, next_idx + 1}].num_tunnels)
+						maxTunnels = lines[i].segments[{next_idx, next_idx + 1}].num_tunnels;
+					if (maxTunnels < lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels)
+						maxTunnels = lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels;
+					lines[i].segments[{curr_idx, next_idx}].addl_vehicles = stationCapacity * maxTunnels;
+				}
+				if (lines[i].bCircular)
+				{
+					if (i == lines[i].stops.size() - 2)
+					{
+						int maxTunnels = lines[i].segments[{curr_idx, next_idx}].num_tunnels;
+						if (maxTunnels < lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels)
+							maxTunnels = lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels;
+						lines[i].segments[{curr_idx, next_idx}].addl_vehicles = stationCapacity * maxTunnels;
+					}
+				}
+				else
+				{
+					if (i == lines[i].stops.size() - 2)
+					{
+						int maxTunnels = lines[i].segments[{curr_idx, next_idx}].num_tunnels;
+						if (maxTunnels < lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels)
+							maxTunnels = lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels;
+						lines[i].segments[{curr_idx, next_idx}].addl_vehicles = stationCapacity * (maxTunnels + 1);
+					}
+				}
+				
 			}
 		}
 	}
