@@ -513,6 +513,13 @@ void PaintCity(HDC hdc)
     }
 
     PaintPath(graphics);
+
+    FontFamily  fontFamily(L"Times New Roman");
+    Font        font(&fontFamily, 22, FontStyleBold, UnitPixel);
+    PointF      pointF(20, 20);
+
+    SolidBrush  solidBrush(Color(255, 0, 0, 0));
+    graphics.DrawString(transportationSystem.GetTotals().c_str(), -1, &font, pointF, &solidBrush);
 } 
 
 

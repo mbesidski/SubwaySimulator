@@ -1,4 +1,6 @@
 #include "TransportationLine.h"
+#include "TransportationSystemAssumptions.h"
+#include "TransportationSystem.h"
 
 TransportationLine::TransportationLine(TransportationLineColor _color, bool _bCircular) : color(_color.color, _color.name)
 {
@@ -16,14 +18,4 @@ TransportationLine::TransportationLine(TransportationLineColor _color, bool _bCi
 void TransportationLine::AddStop(int stopIndex)
 {
 	stops.push_back(stopIndex);
-}
-
-float TransportationLine::GetTotalTunnelLength()
-{
-	return 0;
-}
-
-int TransportationLine::GetTotalVehicles()
-{
-	return 0;
 }

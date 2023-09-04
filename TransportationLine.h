@@ -30,9 +30,5 @@ public:
 	TransportationLine(TransportationLineColor _color, bool bCircular = false);
 
 	void AddStop(int stopIndex);
-
-	float GetTotalTunnelLength();
-
-	int GetTotalVehicles();
 };
 

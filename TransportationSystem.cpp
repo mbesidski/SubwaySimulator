@@ -9,6 +9,9 @@ TransportationSystem::TransportationSystem()
 	lines.clear();
 	adjustedStopTime = -1;
 	tunnelCapacity = -1;
+
+	totalTunnelLength = -1;
+	totalVehicles = -1;
 }
 
 int TransportationSystem::AddStop(TransportationStop stop)
@@ -114,8 +117,8 @@ wstring TransportationSystem::GetLineInfo(int line_idx, TransportationStopCoordi
 	msg += L"Number Of Tunnels = " + to_wstring(lines[line_idx].numTunnels) + L"\n";
 	msg += L"Number Of Vehicles = " + to_wstring(lines[line_idx].numVehicles) + L"\n";
 	msg += L"Number Of Vehicles per Tunnel = " + to_wstring(lines[line_idx].vehiclesPerTunnel) + L"\n";
-	msg += L"Total Tunnel Length = " + to_wstring(lines[line_idx].GetTotalTunnelLength()) + L"\n";
-	msg += L"Total Number Of Vehicles = " + to_wstring(lines[line_idx].GetTotalVehicles()) + L"\n";
+	//msg += L"Total Tunnel Length = " + to_wstring(lines[line_idx].GetTotalTunnelLength()) + L"\n";
+	//msg += L"Total Number Of Vehicles = " + to_wstring(lines[line_idx].GetTotalVehicles()) + L"\n";
 
 	float tolerance = 0.15;
 
@@ -173,6 +176,35 @@ wstring TransportationSystem::GetLineInfo(int line_idx, TransportationStopCoordi
 		}
 	}
 	return L"";
+}
+
+std::wstring FormatWithCommas(float f)
+{
+	return to_wstring(f);
+}
+
+wstring TransportationSystem::GetTotals()
+{
+	float vehicleCost;
+	float tunnelCost;
+	if (TransportationSystemAssumptions::isTrainLine)
+	{
+		tunnelCost = TransportationSystemAssumptions::trainTunnelCostPerKm;
+		vehicleCost = TransportationSystemAssumptions::trainCost;
+	}
+	else
+	{
+		tunnelCost = TransportationSystemAssumptions::vehicleTunnelCostPerKm;
+		vehicleCost = TransportationSystemAssumptions::vehicleCost;
+	}
+	
+	wstring totals = L"Total Tunnels (km) = " + FormatWithCommas(totalTunnelLength) + L"\n";
+	totals += L"Total Vehicles = " + FormatWithCommas(totalVehicles) + L"\n";
+	totals += L"Total Tunnel Cost = " + FormatWithCommas(totalTunnelLength * tunnelCost) + L"\n";
+	totals += L"Total Vehicle Cost = " + FormatWithCommas(totalVehicles * vehicleCost) + L"\n";
+	totals += L"Total System Cost = " + FormatWithCommas(totalVehicles * vehicleCost + totalTunnelLength * tunnelCost) + L"\n";
+
+	return totals;
 }
 
 wstring TransportationSystem::GetStopLabel(int stop_idx)
@@ -561,13 +593,13 @@ void TransportationSystem::CalculateTunnelInfo()
 				int curr_idx = stops[lines[i].stops[j]].id;
 				int next_idx = stops[lines[i].stops[j+1]].id;
 				last_idx = next_idx;
-				lineTime += PathBetweenStops[{curr_idx, last_idx}].time;
+				lineTime += PathBetweenStops[{curr_idx, last_idx}].time + TransportationSystemAssumptions::stoptime;
 			}
 			if (lines[i].bCircular)
 			{
-				lineTime += PathBetweenStops[{last_idx, first_idx}].time;
+				lineTime += PathBetweenStops[{last_idx, first_idx}].time + TransportationSystemAssumptions::stoptime;
 			}
-			lines[i].vehiclesPerTunnel = lineTime / TransportationSystemAssumptions::GetDistanceBetweenVehicles();
+			lines[i].vehiclesPerTunnel = ceil(lineTime / TransportationSystemAssumptions::GetDistanceBetweenVehicles());
 		}
 		TransportationSystemAssumptions::GetDistanceBetweenVehicles();
 	}
@@ -609,7 +641,7 @@ void TransportationSystem::CalculateTunnelNum()
 			}
 			double maxLoad = maxTraffic / TransportationSystemAssumptions::rushHourLength;
 			lines[i].numTunnels = ceil(maxLoad / (double)tunnelCapacity);
-			lines[i].numVehicles = (double)lines[i].vehiclesPerTunnel * maxLoad / (double)tunnelCapacity;
+			lines[i].numVehicles = ceil((double)lines[i].vehiclesPerTunnel * maxLoad / (double)tunnelCapacity);
 		}
 	}
 	else
@@ -671,6 +703,35 @@ void TransportationSystem::CalculateTunnelNum()
 	}
 	
 }
+
+//calculate totals for tunnel length and vehicled for the entire system
+void TransportationSystem::CalculateSystemTotals()
+{
+	totalTunnelLength = 0;
+	totalVehicles = 0;
+
+	if (TransportationSystemAssumptions::isTrainLine)
+	{
+		for (int i = 0; i < lines.size(); i++)
+		{
+			totalTunnelLength += lines[i].fullLength * lines[i].numTunnels * 2.0; //times 2 because you want to account for traffic going in both directions
+			totalVehicles += lines[i].numVehicles * 2; //times 2 because you want to account for traffic going in both directions
+		}
+	}
+	else
+	{
+		for (int i = 0; i < lines.size(); i++)
+		{
+			for (int j = 0; j < lines[i].segments.size() - 1; j++)
+			{
+				totalTunnelLength += lines[i].segments[{j, j + 1}].total_length*2; //times 2 because you want to account for traffic going in both directions
+				totalVehicles += (lines[i].segments[{j, j + 1}].line_vehicles+ lines[i].segments[{j, j + 1}].addl_vehicles)*2; //times 2 because you want to account for traffic going in both directions
+			}
+		}
+	}
+	
+}
+
 void TransportationSystem::CalculateSuportingInfo()
 {
 	CalculateStopDistances();
@@ -683,6 +744,7 @@ void TransportationSystem::CalculateSuportingInfo()
 	CalculateLineData();
 	CalculateTunnelInfo();
 	CalculateTunnelNum();
+	CalculateSystemTotals();
 }
 
 

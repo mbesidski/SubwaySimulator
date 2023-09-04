@@ -26,6 +26,12 @@ public:
 	static int trainCapacity; //max people in one train
 	static int rushHourLength; //hours
 
+	static int vehicleTunnelCostPerKm; //dollars
+	static int trainTunnelCostPerKm; //dollars
+
+	static int vehicleCost; //dollars
+	static int trainCost; //dollars
+
 	static bool isTrainLine; //train if true, car if not
 	static bool isHeatMap;
 

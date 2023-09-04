@@ -28,6 +28,9 @@ public:
 
 	int tunnelCapacity; //how many people can move through this tunnel per direction per hour
 
+	int totalVehicles; // number of vehicles in the entire system
+	float totalTunnelLength; //overall tunnel length in km
+
 
 	int AddLine(TransportationLine);
 
@@ -40,6 +43,8 @@ public:
 	wstring GetStopInfo(int stop_idx, int originStop);
 
 	wstring GetLineInfo(int line_idx, TransportationStopCoordinates coords);
+
+	wstring GetTotals();
 	
 	TransportationSystem();
 
@@ -54,6 +59,7 @@ public:
 	void CalculateLineData();
 	void CalculateTunnelInfo();
 	void CalculateTunnelNum();
+	void CalculateSystemTotals();
 
 };
 

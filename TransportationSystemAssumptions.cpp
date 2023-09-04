@@ -18,12 +18,18 @@ int TransportationSystemAssumptions::addlTransferTime = 300; //sec - penalty for
 int TransportationSystemAssumptions::stoptime = 60; //sec
 int TransportationSystemAssumptions::distanceBetweenTrains = 110; //sec
 int TransportationSystemAssumptions::distanceBetweenCars = 2; //sec
-bool TransportationSystemAssumptions::isTrainLine = true;
-bool TransportationSystemAssumptions::isHeatMap = true;
+bool TransportationSystemAssumptions::isTrainLine = false;
+bool TransportationSystemAssumptions::isHeatMap = false;
 int TransportationSystemAssumptions::carCapacity = 15; //people
 int TransportationSystemAssumptions::trainCapacity = 2200; //people
 int TransportationSystemAssumptions::rushHourLength = 3; //hours
 int TransportationSystemAssumptions::CommutingPopulation = 6000000;
+
+int TransportationSystemAssumptions::vehicleTunnelCostPerKm = 5000000;
+int TransportationSystemAssumptions::vehicleCost = 50000; //dollars
+
+int TransportationSystemAssumptions::trainTunnelCostPerKm = 25000000;
+int TransportationSystemAssumptions::trainCost = 20000000; //dollars
 
 TransportationStopCoordinates TransportationSystemAssumptions::MapCenter()
 {
