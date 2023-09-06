@@ -23,6 +23,9 @@ public:
 	int numTunnels; //how many tunnels one way tunnels (lanes if were talking about cars) will be needed
 	int numVehicles; //overall total number of vehicles;
 
+	float totalLength; //total lenght of the full bi-directional line
+	float totalVehicles; //total number of vehicles for the full bi-directional line
+
 	vector<int> stops; //indexes of Transportation stops in TransportationSystem.stops belogning to this line
 
 	map<pair<int, int>, TransportationLineSegment> segments; //for van lines, number of tunnels is calculated per segment and so is the number of vehicles

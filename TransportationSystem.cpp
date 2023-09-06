@@ -117,8 +117,8 @@ wstring TransportationSystem::GetLineInfo(int line_idx, TransportationStopCoordi
 	msg += L"Number Of Tunnels = " + to_wstring(lines[line_idx].numTunnels) + L"\n";
 	msg += L"Number Of Vehicles = " + to_wstring(lines[line_idx].numVehicles) + L"\n";
 	msg += L"Number Of Vehicles per Tunnel = " + to_wstring(lines[line_idx].vehiclesPerTunnel) + L"\n";
-	//msg += L"Total Tunnel Length = " + to_wstring(lines[line_idx].GetTotalTunnelLength()) + L"\n";
-	//msg += L"Total Number Of Vehicles = " + to_wstring(lines[line_idx].GetTotalVehicles()) + L"\n";
+	msg += L"Total Tunnel Length = " + to_wstring(lines[line_idx].totalLength) + L"\n";
+	msg += L"Total Number Of Vehicles = " + to_wstring(lines[line_idx].totalVehicles) + L"\n";
 
 	float tolerance = 0.15;
 
@@ -178,9 +178,27 @@ wstring TransportationSystem::GetLineInfo(int line_idx, TransportationStopCoordi
 	return L"";
 }
 
-std::wstring FormatWithCommas(float f)
+wstring FormatWithCommas(float f)
 {
-	return to_wstring(f);
+	wstring res = L"";
+	do
+	{
+		int rem = f - (INT64)f / 1000 * 1000;
+		wstring num = to_wstring(rem);
+		
+		f = (int)(f / 1000);
+
+		while (num.size() < 3 && f > 0)
+			num = L"0" + num;
+
+		res = num + res;
+
+		if (f > 0)
+			res = L"," + res;
+
+	} while (f > 0);
+
+	return res;
 }
 
 wstring TransportationSystem::GetTotals()
@@ -198,7 +216,7 @@ wstring TransportationSystem::GetTotals()
 		vehicleCost = TransportationSystemAssumptions::vehicleCost;
 	}
 	
-	wstring totals = L"Total Tunnels (km) = " + FormatWithCommas(totalTunnelLength) + L"\n";
+	wstring totals = L"Total Tunnels (km) = " + to_wstring(totalTunnelLength) + L"\n";
 	totals += L"Total Vehicles = " + FormatWithCommas(totalVehicles) + L"\n";
 	totals += L"Total Tunnel Cost = " + FormatWithCommas(totalTunnelLength * tunnelCost) + L"\n";
 	totals += L"Total Vehicle Cost = " + FormatWithCommas(totalVehicles * vehicleCost) + L"\n";
@@ -714,19 +732,27 @@ void TransportationSystem::CalculateSystemTotals()
 	{
 		for (int i = 0; i < lines.size(); i++)
 		{
-			totalTunnelLength += lines[i].fullLength * lines[i].numTunnels * 2.0; //times 2 because you want to account for traffic going in both directions
-			totalVehicles += lines[i].numVehicles * 2; //times 2 because you want to account for traffic going in both directions
+			lines[i].totalLength = lines[i].fullLength * lines[i].numTunnels * 2.0; //times 2 because you want to account for traffic going in both directions 
+			totalTunnelLength += lines[i].totalLength;
+			lines[i].totalVehicles = lines[i].numVehicles * 2; //times 2 because you want to account for traffic going in both directions
+			totalVehicles += lines[i].totalVehicles;
 		}
 	}
 	else
 	{
 		for (int i = 0; i < lines.size(); i++)
 		{
+			lines[i].totalLength = 0;
+			lines[i].totalVehicles = 0;
+
 			for (int j = 0; j < lines[i].segments.size() - 1; j++)
 			{
-				totalTunnelLength += lines[i].segments[{j, j + 1}].total_length*2; //times 2 because you want to account for traffic going in both directions
-				totalVehicles += (lines[i].segments[{j, j + 1}].line_vehicles+ lines[i].segments[{j, j + 1}].addl_vehicles)*2; //times 2 because you want to account for traffic going in both directions
+				lines[i].totalLength += lines[i].segments[{j, j + 1}].total_length*2; //times 2 because you want to account for traffic going in both directions
+				lines[i].totalVehicles += (lines[i].segments[{j, j + 1}].line_vehicles+ lines[i].segments[{j, j + 1}].addl_vehicles)*2; //times 2 because you want to account for traffic going in both directions
 			}
+
+			totalTunnelLength += lines[i].totalLength;
+			totalVehicles += lines[i].totalVehicles;
 		}
 	}
 	
