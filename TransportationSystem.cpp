@@ -642,49 +642,71 @@ void TransportationSystem::CalculateTunnelNum()
 	else
 	{
 		float stationCapacity = TransportationSystemAssumptions::stoptime / TransportationSystemAssumptions::distanceBetweenCars;
-		float d = (TransportationSystemAssumptions::GetAcceleration() * pow(TransportationSystemAssumptions::maxSpeed / TransportationSystemAssumptions::GetAcceleration(), 2)) / 2000 * 1.5;
+		float approach_length = (TransportationSystemAssumptions::GetAcceleration() 
+			* pow(TransportationSystemAssumptions::maxSpeed / TransportationSystemAssumptions::GetAcceleration(), 2)) / 2000 * 1.5;
 	
-		float distance = TransportationSystemAssumptions::GetDistanceBetweenVehicles() * TransportationSystemAssumptions::maxSpeed;
+		float distance_between_vehicles = 
+			TransportationSystemAssumptions::GetDistanceBetweenVehicles() 
+			* TransportationSystemAssumptions::maxSpeed / 1000;
 
 		for (int i = 0; i < lines.size(); i++)
 		{
+			if (i == 4)
+				cout << "Hello;";
+
 			for (int j = 0; j < lines[i].stops.size() - 1; j++)
 			{
 				int curr_idx = stops[lines[i].stops[j]].id;
 				int next_idx = stops[lines[i].stops[j + 1]].id;
+
 				lines[i].segments[{curr_idx, next_idx}].length = Utils::CalculateDistance(stops[curr_idx].mapCoordinates, stops[next_idx].mapCoordinates);
-				int maxTraffic = TrafficMap[{curr_idx, next_idx}];
-				if (TrafficMap[{curr_idx, next_idx}] < TrafficMap[{next_idx, curr_idx}])
-					maxTraffic = TrafficMap[{next_idx, curr_idx}];
+				int maxTraffic = max((TrafficMap[{curr_idx, next_idx}]), (TrafficMap[{next_idx, curr_idx}]));
 
 				double maxLoad = maxTraffic / TransportationSystemAssumptions::rushHourLength;
 				
 				
 				lines[i].segments[{curr_idx, next_idx}].num_tunnels = ceil(maxLoad / (double)tunnelCapacity);
-				lines[i].segments[{curr_idx, next_idx}].line_vehicles = lines[i].segments[{curr_idx, next_idx}].length / (distance / 1000) * (maxLoad / (double)tunnelCapacity);
+				lines[i].segments[{curr_idx, next_idx}].line_vehicles = 
+					ceil(lines[i].segments[{curr_idx, next_idx}].length / distance_between_vehicles * (maxLoad / (double)tunnelCapacity));
+				
 				lines[i].segments[{curr_idx, next_idx}].num_approach_tunnels = ceil(maxLoad / (double)tunnelCapacity) * 2;
 				
-				lines[i].segments[{curr_idx, next_idx}].total_length = (ceil(maxLoad / (double)tunnelCapacity) * 2 * d) + Utils::CalculateDistance(stops[curr_idx].mapCoordinates, stops[next_idx].mapCoordinates);
+				lines[i].segments[{curr_idx, next_idx}].total_length = lines[i].segments[{curr_idx, next_idx}].num_approach_tunnels * approach_length
+					+ lines[i].segments[{curr_idx, next_idx}].length * lines[i].segments[{curr_idx, next_idx}].num_tunnels;
 				
 				
-				if (i == 0)
+				if (j == 0)
 					lines[i].segments[{curr_idx, next_idx}].addl_vehicles = stationCapacity * lines[i].segments[{curr_idx, next_idx}].num_tunnels;
-				if (i > 0 && i < lines[i].stops.size() - 2)
+				
+				if (j > 0 && j < lines[i].stops.size() - 2)
 				{
-					int maxTunnels = lines[i].segments[{curr_idx, next_idx}].num_tunnels;
-					if (maxTunnels < lines[i].segments[{next_idx, next_idx + 1}].num_tunnels)
-						maxTunnels = lines[i].segments[{next_idx, next_idx + 1}].num_tunnels;
-					if (maxTunnels < lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels)
-						maxTunnels = lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels;
+					int maxTunnels = max((lines[i].segments[{curr_idx, next_idx}].num_tunnels), 
+						(lines[i].segments[{next_idx, next_idx + 1}].num_tunnels));
+
+					maxTunnels = max(maxTunnels, (lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels));
+
 					lines[i].segments[{curr_idx, next_idx}].addl_vehicles = stationCapacity * maxTunnels;
 				}
+
 				
-				if (j == lines[i].stops.size() - 2 && !lines[i].bCircular)
+				if (j == lines[i].stops.size() - 2) //last segment
 				{
-					int maxTunnels = lines[i].segments[{curr_idx, next_idx}].num_tunnels;
-					if (maxTunnels < lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels)
-						maxTunnels = lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels;
-					lines[i].segments[{curr_idx, next_idx}].addl_vehicles = stationCapacity * (maxTunnels + 1);
+					if (lines[i].bCircular)
+					{
+						int first_stop_idx = stops[lines[i].stops[0]].id;
+
+						int maxTunnels = max((lines[i].segments[{curr_idx, next_idx}].num_tunnels),
+							(lines[i].segments[{first_stop_idx, first_stop_idx + 1}].num_tunnels));
+
+						lines[i].segments[{curr_idx, next_idx}].addl_vehicles = stationCapacity * (maxTunnels + 1);
+					}
+					else
+					{
+						int maxTunnels = max((lines[i].segments[{curr_idx, next_idx}].num_tunnels),
+							(lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels));
+
+						lines[i].segments[{curr_idx, next_idx}].addl_vehicles = stationCapacity * (maxTunnels + 1);
+					}
 				}
 			}
 
@@ -695,19 +717,21 @@ void TransportationSystem::CalculateTunnelNum()
 				int curr_idx = stops[lines[i].stops[lines[i].stops.size() - 1]].id;
 
 				lines[i].segments[{curr_idx, next_idx}].length = Utils::CalculateDistance(stops[curr_idx].mapCoordinates, stops[next_idx].mapCoordinates);
-				int maxTunnels = lines[i].segments[{curr_idx, next_idx}].num_tunnels;
-				if (maxTunnels < lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels)
-					maxTunnels = lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels;
+				int maxTunnels = max((lines[i].segments[{curr_idx, next_idx}].num_tunnels), 
+					(lines[i].segments[{curr_idx - 1, curr_idx}].num_tunnels));
+				
 				lines[i].segments[{curr_idx, next_idx}].addl_vehicles = stationCapacity * maxTunnels;
 
-				int maxTraffic = TrafficMap[{curr_idx, next_idx}];
-				if (TrafficMap[{curr_idx, next_idx}] < TrafficMap[{next_idx, curr_idx}])
-					maxTraffic = TrafficMap[{next_idx, curr_idx}];
+				int maxTraffic = max((TrafficMap[{curr_idx, next_idx}]), (TrafficMap[{next_idx, curr_idx}]));
+				
 				double maxLoad = maxTraffic / TransportationSystemAssumptions::rushHourLength;
 				lines[i].segments[{curr_idx, next_idx}].num_tunnels = ceil(maxLoad / (double)tunnelCapacity);
-				lines[i].segments[{curr_idx, next_idx}].line_vehicles = lines[i].segments[{curr_idx, next_idx}].length / (distance / 1000) * (maxLoad / (double)tunnelCapacity);
+				lines[i].segments[{curr_idx, next_idx}].line_vehicles = 
+					ceil(lines[i].segments[{curr_idx, next_idx}].length / distance_between_vehicles * (maxLoad / (double)tunnelCapacity));
 				lines[i].segments[{curr_idx, next_idx}].num_approach_tunnels = ceil(maxLoad / (double)tunnelCapacity) * 2;
-				lines[i].segments[{curr_idx, next_idx}].total_length = (ceil(maxLoad / (double)tunnelCapacity) * 2 * d) + Utils::CalculateDistance(stops[curr_idx].mapCoordinates, stops[next_idx].mapCoordinates);
+				
+				lines[i].segments[{curr_idx, next_idx}].total_length = lines[i].segments[{curr_idx, next_idx}].num_approach_tunnels* approach_length
+					+ lines[i].segments[{curr_idx, next_idx}].length* lines[i].segments[{curr_idx, next_idx}].num_tunnels;
 			
 			}
 			
@@ -739,10 +763,11 @@ void TransportationSystem::CalculateSystemTotals()
 			lines[i].totalLength = 0;
 			lines[i].totalVehicles = 0;
 
-			for (int j = 0; j < lines[i].segments.size() - 1; j++)
+			for (auto segment : lines[i].segments)
 			{
-				lines[i].totalLength += lines[i].segments[{j, j + 1}].total_length*2; //times 2 because you want to account for traffic going in both directions
-				lines[i].totalVehicles += (lines[i].segments[{j, j + 1}].line_vehicles + lines[i].segments[{j, j + 1}].addl_vehicles)*2; //times 2 because you want to account for traffic going in both directions
+				lines[i].totalLength += segment.second.total_length * 2; //times 2 because you want to account for traffic going in both directions
+				lines[i].totalVehicles += (segment.second.line_vehicles
+						+ segment.second.addl_vehicles) * 2; //times 2 because you want to account for traffic going in both directions
 			}
 
 			totalTunnelLength += lines[i].totalLength;
