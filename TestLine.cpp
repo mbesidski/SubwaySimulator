@@ -499,7 +499,7 @@ void PaintCity(HDC hdc)
             DrawStop(graphics, TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates), Color(128, 128, 128, 128), stop_label);
         }
     }
-    /*
+    
     for (TransportationLine line : transportationSystem.lines)
     {
         for (int stop_idx : line.stops)
@@ -512,7 +512,7 @@ void PaintCity(HDC hdc)
             DrawStop(graphics, TranslateToScreen(transportationSystem.stops[stop_idx].mapCoordinates), Color(255, 255, 255, 255), stop_label);
         }
     }
-    */
+    
     PaintPath(graphics);
 
     FontFamily  fontFamily(L"Times New Roman");

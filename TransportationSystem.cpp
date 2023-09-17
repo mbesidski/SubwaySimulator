@@ -2,6 +2,7 @@
 #include "TransportationSystemAssumptions.h"
 #include "Utils.h"
 #include "Dijkstra.h"
+#include <fstream>
 
 TransportationSystem::TransportationSystem()
 {
@@ -198,6 +199,13 @@ wstring TransportationSystem::GetTotals()
 	totals += L"Total Tunnel Cost = " + Utils::FormatWithCommas(totalTunnelLength * tunnelCost) + L"\n";
 	totals += L"Total Vehicle Cost = " + Utils::FormatWithCommas(totalVehicles * vehicleCost) + L"\n";
 	totals += L"Total System Cost = " + Utils::FormatWithCommas(totalVehicles * vehicleCost + totalTunnelLength * tunnelCost) + L"\n";
+
+	ofstream outfile;
+
+	string str(totals.begin(), totals.end());
+	outfile.open("results.txt", std::ios_base::app); // append instead of overwrite
+	outfile << str << "\n";
+	outfile.close();
 
 	return totals;
 }

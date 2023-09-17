@@ -1,0 +1,90 @@
+Vans
+5M
+Total Tunnels (km) = 2169.204346
+Total Vehicles = 35,552
+Total Tunnel Cost = 10,846,021,632
+Total Vehicle Cost = 3,555,200,000
+Total System Cost = 14,401,221,632
+
+7.5M
+Total Tunnels (km) = 2169.204346
+Total Vehicles = 35,552
+Total Tunnel Cost = 16,269,032,448
+Total Vehicle Cost = 3,555,200,000
+Total System Cost = 19,824,232,448
+
+10M
+Total Tunnels (km) = 2169.204346
+Total Vehicles = 35,552
+Total Tunnel Cost = 21,692,043,264
+Total Vehicle Cost = 3,555,200,000
+Total System Cost = 25,247,244,288
+
+12.5M
+Total Tunnels (km) = 2169.204346
+Total Vehicles = 35,552
+Total Tunnel Cost = 27,115,055,104
+Total Vehicle Cost = 3,555,200,000
+Total System Cost = 30,670,254,080
+
+15M
+Total Tunnels (km) = 2169.204346
+Total Vehicles = 35,552
+Total Tunnel Cost = 32,538,064,896
+Total Vehicle Cost = 3,555,200,000
+Total System Cost = 36,093,263,872
+
+17.5M
+Total Tunnels (km) = 2169.204346
+Total Vehicles = 35,552
+Total Tunnel Cost = 37,961,076,736
+Total Vehicle Cost = 3,555,200,000
+Total System Cost = 41,516,277,760
+
+20M
+Total Tunnels (km) = 2169.204346
+Total Vehicles = 35,552
+Total Tunnel Cost = 43,384,086,528
+Total Vehicle Cost = 3,555,200,000
+Total System Cost = 46,939,287,552
+
+22.5M
+Total Tunnels (km) = 2169.204346
+Total Vehicles = 35,552
+Total Tunnel Cost = 48,807,096,320
+Total Vehicle Cost = 3,555,200,000
+Total System Cost = 52,362,297,344
+
+25M
+Total Tunnels (km) = 2169.204346
+Total Vehicles = 35,552
+Total Tunnel Cost = 54,230,110,208
+Total Vehicle Cost = 3,555,200,000
+Total System Cost = 57,785,311,232
+
+Train
+
+Total Tunnels (km) = 608.581604
+Total Vehicles = 396
+Total Tunnel Cost = 30,429,079,552
+Total Vehicle Cost = 7,920,000,000
+Total System Cost = 38,349,078,528
+
+Total Tunnels (km) = 608.581604
+Total Vehicles = 396
+Total Tunnel Cost = 30,429,079,552
+Total Vehicle Cost = 7,920,000,000
+Total System Cost = 38,349,078,528
+
+Total Tunnels (km) = 608.581604
+Total Vehicles = 396
+Total Tunnel Cost = 20,083,193,856
+Total Vehicle Cost = 7,920,000,000
+Total System Cost = 28,003,192,832
+
+Total Tunnels (km) = 2169.204346
+Total Vehicles = 35,552
+Total Tunnel Cost = 21,692,043,264
+Total Vehicle Cost = 3,555,200,000
+Total System Cost = 25,247,244,288
+
