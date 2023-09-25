@@ -23,12 +23,12 @@ bool TransportationSystemAssumptions::isHeatMap = false;
 int TransportationSystemAssumptions::carCapacity = 15; //people
 int TransportationSystemAssumptions::trainCapacity = 2200; //people
 int TransportationSystemAssumptions::rushHourLength = 3; //hours
-int TransportationSystemAssumptions::CommutingPopulation = 7000000;
+int TransportationSystemAssumptions::CommutingPopulation = 1000000*6;
 
-int TransportationSystemAssumptions::vehicleTunnelCostPerKm = 10000000; //based on boring company's own projections for the Chicago O'Hare Loop... 
+int TransportationSystemAssumptions::vehicleTunnelCostPerKm = 10000000; //based on boring company's own projections for the Las Vegas Loop... 
 int TransportationSystemAssumptions::vehicleCost = 100000; //dollars
 
-int TransportationSystemAssumptions::trainTunnelCostPerKm = 33000000; //Chongqing metro/3 because we are doing per track
+int TransportationSystemAssumptions::trainTunnelCostPerKm = 33000000; //Chongqing metro/3 because we are doing the cost per track, and we have an average of three tracks at any given point
 int TransportationSystemAssumptions::trainCost = 20000000; //dollars
 
 TransportationStopCoordinates TransportationSystemAssumptions::MapCenter()
